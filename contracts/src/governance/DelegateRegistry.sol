@@ -14,7 +14,6 @@ import { IDelegateRegistry } from "../interfaces/IDelegateRegistry.sol";
 /// @dev Key features per vTON DAO Governance Model:
 ///      - Delegators must register with profile, voting philosophy, interests
 ///      - vTON holders MUST delegate to vote (cannot vote directly)
-///      - Delegation cap: 20% of total supply per delegator
 ///      - 7-day minimum delegation period for voting power
 ///      - Optional auto-expiry for delegations
 contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
@@ -28,24 +27,15 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     error NotRegisteredDelegator();
     error AlreadyRegisteredDelegator();
     error DelegatorNotActive();
-    error DelegationCapExceeded();
     error InsufficientDelegation();
     error ZeroAmount();
     error ZeroAddress();
-    error InvalidCap();
-    error SelfDelegationNotAllowed();
     error EmptyProfile();
     error DelegationExpired();
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Maximum delegation cap (100%)
-    uint256 public constant MAX_CAP = 10_000; // 100% in basis points
-
-    /// @notice Default delegation cap (20%)
-    uint256 public constant DEFAULT_CAP = 2000; // 20% in basis points
 
     /// @notice Default delegation period requirement (7 days)
     uint256 public constant DEFAULT_PERIOD = 7 days;
@@ -56,9 +46,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
 
     /// @notice The vTON token contract
     IERC20 public immutable vTON;
-
-    /// @notice Delegation cap in basis points (2000 = 20%)
-    uint256 public override delegationCap;
 
     /// @notice Minimum delegation period for voting power (in seconds)
     uint256 public override delegationPeriodRequirement;
@@ -103,7 +90,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         if (vTON_ == address(0) || initialOwner == address(0)) revert ZeroAddress();
 
         vTON = IERC20(vTON_);
-        delegationCap = DEFAULT_CAP;
         delegationPeriodRequirement = DEFAULT_PERIOD;
         autoExpiryPeriod = 0; // No expiry by default
     }
@@ -169,17 +155,9 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     function delegate(address delegator, uint256 amount) external override nonReentrant {
         if (delegator == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
-        if (delegator == msg.sender) revert SelfDelegationNotAllowed();
 
         DelegatorInfo storage info = _delegators[delegator];
         if (info.registeredAt == 0 || !info.isActive) revert DelegatorNotActive();
-
-        // Check delegation cap
-        uint256 totalSupply = vTON.totalSupply();
-        uint256 maxDelegation = (totalSupply * delegationCap) / MAX_CAP;
-        if (_totalDelegated[delegator] + amount > maxDelegation) {
-            revert DelegationCapExceeded();
-        }
 
         // Transfer vTON to this contract
         vTON.safeTransferFrom(msg.sender, address(this), amount);
@@ -248,20 +226,12 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     ) external override nonReentrant {
         if (fromDelegator == address(0) || toDelegator == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
-        if (toDelegator == msg.sender) revert SelfDelegationNotAllowed();
 
         DelegatorInfo storage toInfo = _delegators[toDelegator];
         if (toInfo.registeredAt == 0 || !toInfo.isActive) revert DelegatorNotActive();
 
         DelegationInfo storage fromDelegation = _delegations[msg.sender][fromDelegator];
         if (fromDelegation.amount < amount) revert InsufficientDelegation();
-
-        // Check delegation cap for new delegator
-        uint256 totalSupply = vTON.totalSupply();
-        uint256 maxDelegation = (totalSupply * delegationCap) / MAX_CAP;
-        if (_totalDelegated[toDelegator] + amount > maxDelegation) {
-            revert DelegationCapExceeded();
-        }
 
         // Update from delegation
         fromDelegation.amount -= amount;
@@ -370,16 +340,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IDelegateRegistry
-    function setDelegationCap(uint256 cap) external override onlyOwner {
-        if (cap > MAX_CAP) revert InvalidCap();
-
-        uint256 oldCap = delegationCap;
-        delegationCap = cap;
-
-        emit DelegationCapUpdated(oldCap, cap);
-    }
 
     /// @inheritdoc IDelegateRegistry
     function setDelegationPeriodRequirement(uint256 period) external override onlyOwner {

@@ -143,27 +143,26 @@ contract DelegateRegistryTest is Test {
         registry.delegate(delegator1, 1000 ether);
     }
 
-    function test_DelegateRevertsOnSelfDelegation() public {
+    function test_SelfDelegationAllowed() public {
         vm.prank(user1);
         registry.registerDelegator("User1", "Philosophy", "Interests");
 
         vm.prank(user1);
-        vm.expectRevert(DelegateRegistry.SelfDelegationNotAllowed.selector);
         registry.delegate(user1, 1000 ether);
+
+        assertEq(registry.getTotalDelegated(user1), 1000 ether);
     }
 
-    function test_DelegateRevertsIfCapExceeded() public {
+    function test_DelegateFullBalance() public {
         vm.prank(delegator1);
         registry.registerDelegator("Alice", "Philosophy", "Interests");
 
-        // Total supply is 20_000 ether (user1 + user2)
-        // Cap is 20% = 4000 ether
-        uint256 maxAmount = (token.totalSupply() * 2000) / 10_000;
-
-        // Delegate user1's full balance (10_000) should exceed cap
+        // Delegate user1's full balance (10_000) - should succeed without cap
         vm.prank(user1);
-        vm.expectRevert(DelegateRegistry.DelegationCapExceeded.selector);
         registry.delegate(delegator1, INITIAL_BALANCE);
+
+        assertEq(registry.getTotalDelegated(delegator1), INITIAL_BALANCE);
+        assertEq(token.balanceOf(user1), 0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -262,19 +261,6 @@ contract DelegateRegistryTest is Test {
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function test_SetDelegationCap() public {
-        vm.prank(owner);
-        registry.setDelegationCap(3000); // 30%
-
-        assertEq(registry.delegationCap(), 3000);
-    }
-
-    function test_SetDelegationCapRevertsIfExceedsMax() public {
-        vm.prank(owner);
-        vm.expectRevert(DelegateRegistry.InvalidCap.selector);
-        registry.setDelegationCap(10_001);
-    }
-
     function test_SetDelegationPeriodRequirement() public {
         vm.prank(owner);
         registry.setDelegationPeriodRequirement(14 days);
@@ -293,12 +279,12 @@ contract DelegateRegistryTest is Test {
                              FUZZ TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_DelegateWithinCap(uint256 amount) public {
+    function testFuzz_DelegateAnyAmount(uint256 amount) public {
         vm.prank(delegator1);
         registry.registerDelegator("Alice", "Philosophy", "Interests");
 
-        uint256 maxAmount = (token.totalSupply() * registry.delegationCap()) / 10_000;
-        amount = bound(amount, 1, maxAmount);
+        // Can delegate any amount up to user's balance
+        amount = bound(amount, 1, INITIAL_BALANCE);
 
         vm.prank(user1);
         registry.delegate(delegator1, amount);
