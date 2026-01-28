@@ -40,9 +40,13 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
   const { address, isConnected } = useAccount();
   const [isVotingModalOpen, setIsVotingModalOpen] = React.useState(false);
 
+  // Check if this is a demo proposal (cannot interact with contract)
+  const isDemo = proposal.id.startsWith("demo-");
+  const proposalIdBigInt = isDemo ? BigInt(0) : BigInt(proposal.id);
+
   const { data: hasVoted } = useHasVoted(
-    BigInt(proposal.id),
-    address
+    proposalIdBigInt,
+    isDemo ? undefined : address
   );
 
   const totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
@@ -50,7 +54,7 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
   const againstPercentage = totalVotes > 0 ? (proposal.againstVotes / totalVotes) * 100 : 0;
   const abstainPercentage = totalVotes > 0 ? (proposal.abstainVotes / totalVotes) * 100 : 0;
 
-  const canVote = isConnected && proposal.status === "active" && !hasVoted;
+  const canVote = isConnected && proposal.status === "active" && !hasVoted && !isDemo;
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -188,13 +192,15 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <ProposalActions
-            proposalId={BigInt(proposal.id)}
-            status={proposal.status}
-            proposer={proposal.proposer}
-            canExecute={proposal.status === "queued"}
-          />
+          {/* Actions - only for real proposals */}
+          {!isDemo && (
+            <ProposalActions
+              proposalId={proposalIdBigInt}
+              status={proposal.status}
+              proposer={proposal.proposer}
+              canExecute={proposal.status === "queued"}
+            />
+          )}
         </div>
 
         {/* Sidebar */}
@@ -234,13 +240,15 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
         </div>
       </div>
 
-      {/* Voting Modal */}
-      <VotingModal
-        isOpen={isVotingModalOpen}
-        onClose={() => setIsVotingModalOpen(false)}
-        proposalId={BigInt(proposal.id)}
-        proposalTitle={proposal.title}
-      />
+      {/* Voting Modal - only for real proposals */}
+      {!isDemo && (
+        <VotingModal
+          isOpen={isVotingModalOpen}
+          onClose={() => setIsVotingModalOpen(false)}
+          proposalId={proposalIdBigInt}
+          proposalTitle={proposal.title}
+        />
+      )}
     </div>
   );
 }

@@ -4,31 +4,27 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProposalCard } from "@/components/ui/proposal-card";
 import { Badge } from "@/components/ui/badge";
-import { useProposalCount } from "@/hooks/contracts/useDAOGovernor";
-import type { ProposalStatus } from "@/types/governance";
-
-// Mock active proposals for display
-const MOCK_PROPOSALS: {
-  id: string;
-  title: string;
-  status: ProposalStatus;
-  date: Date;
-  forVotes: number;
-  againstVotes: number;
-  abstainVotes: number;
-  totalVoters: number;
-}[] = [];
+import { useProposals } from "@/hooks/contracts/useDAOGovernor";
+import { useMemo } from "react";
+import { formatUnits } from "viem";
 
 /**
  * Active Proposals Section
  * Shows currently active proposals with voting status
  */
 export function ActiveProposals() {
-  const { isDeployed } = useProposalCount();
+  const { data: allProposals, isDeployed } = useProposals();
 
-  // In production, we'd fetch active proposals from the contract
-  // For now, use mock data
-  const proposals = MOCK_PROPOSALS;
+  // Filter to only show active proposals (or pending if no active)
+  const proposals = useMemo(() => {
+    if (!allProposals) return [];
+    // Show active proposals first, then pending
+    const active = allProposals.filter((p) => p.status === "active");
+    if (active.length > 0) return active.slice(0, 3);
+    // If no active, show recent pending proposals
+    const pending = allProposals.filter((p) => p.status === "pending");
+    return pending.slice(0, 3);
+  }, [allProposals]);
 
   return (
     <Card>
@@ -63,19 +59,24 @@ export function ActiveProposals() {
             </p>
           </div>
         )}
-        {proposals.map((proposal) => (
-          <ProposalCard
-            key={proposal.id}
-            id={proposal.id}
-            title={proposal.title}
-            status={proposal.status}
-            date={proposal.date}
-            forVotes={proposal.forVotes}
-            againstVotes={proposal.againstVotes}
-            abstainVotes={proposal.abstainVotes}
-            totalVoters={proposal.totalVoters}
-          />
-        ))}
+        {proposals.map((proposal) => {
+          const forVotes = Number(formatUnits(proposal.forVotes, 18));
+          const againstVotes = Number(formatUnits(proposal.againstVotes, 18));
+          const abstainVotes = Number(formatUnits(proposal.abstainVotes, 18));
+          return (
+            <ProposalCard
+              key={proposal.id}
+              id={proposal.id}
+              title={proposal.title}
+              status={proposal.status}
+              date={proposal.date}
+              forVotes={forVotes}
+              againstVotes={againstVotes}
+              abstainVotes={abstainVotes}
+              totalVoters={forVotes + againstVotes + abstainVotes > 0 ? 1 : 0}
+            />
+          );
+        })}
       </CardContent>
     </Card>
   );
