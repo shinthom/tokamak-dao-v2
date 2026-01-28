@@ -52,7 +52,11 @@ const NavigationItems = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center gap-[var(--space-1)]", className)}
+    className={cn(
+      "absolute left-1/2 -translate-x-1/2",
+      "flex items-center gap-[var(--space-1)]",
+      className
+    )}
     role="menubar"
     {...props}
   />
