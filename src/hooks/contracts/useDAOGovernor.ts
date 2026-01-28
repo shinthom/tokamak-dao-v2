@@ -1,12 +1,23 @@
 "use client";
 
-import { useReadContract, useWriteContract, useChainId } from "wagmi";
+import { useReadContract, useReadContracts, useWriteContract, useChainId, useBlockNumber } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getContractAddresses,
   areContractsDeployed,
   DAO_GOVERNOR_ABI,
 } from "@/constants/contracts";
-import { VoteType } from "@/types/governance";
+import { VoteType, ProposalStatus } from "@/types/governance";
+
+// Average block time in seconds (Sepolia/Ethereum ~12s)
+const BLOCK_TIME_SECONDS = 12;
+
+// Helper function to convert block number to estimated Date
+function blockToDate(blockNumber: bigint, currentBlock: bigint, currentTime: Date): Date {
+  const blockDiff = Number(blockNumber) - Number(currentBlock);
+  const timeDiffMs = blockDiff * BLOCK_TIME_SECONDS * 1000;
+  return new Date(currentTime.getTime() + timeDiffMs);
+}
 
 // Mock data for when contracts are not deployed
 const MOCK_DATA = {
@@ -14,9 +25,172 @@ const MOCK_DATA = {
   quorum: BigInt(400), // 4%
   votingPeriod: BigInt(604800), // 7 days in seconds
   votingDelay: BigInt(86400), // 1 day in seconds
-  proposalThreshold: BigInt("1000000000000000000000"), // 1000 vTON
   proposalCreationCost: BigInt("100000000000000000000"), // 100 TON
 };
+
+// Map contract state (uint8) to ProposalStatus
+function mapProposalState(state: number): ProposalStatus {
+  const stateMap: Record<number, ProposalStatus> = {
+    0: "pending",   // Pending
+    1: "active",    // Active
+    2: "canceled",  // Canceled
+    3: "failed",    // Defeated
+    4: "succeeded", // Succeeded
+    5: "queued",    // Queued
+    6: "expired",   // Expired
+    7: "executed",  // Executed
+  };
+  return stateMap[state] ?? "pending";
+}
+
+// Extract title from description (first line after # or full string)
+function extractTitle(description: string): string {
+  const lines = description.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("# ")) {
+      return trimmed.slice(2).trim();
+    }
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+  return "Untitled Proposal";
+}
+
+export interface ProposalListItem {
+  id: string;
+  title: string;
+  description: string;
+  status: ProposalStatus;
+  proposer: string;
+  date: Date;
+  forVotes: bigint;
+  againstVotes: bigint;
+  abstainVotes: bigint;
+  voteStart: bigint;
+  voteEnd: bigint;
+}
+
+/**
+ * Hook to get all proposal IDs directly from contract
+ */
+function useProposalIds() {
+  const chainId = useChainId();
+  const addresses = getContractAddresses(chainId);
+  const isDeployed = areContractsDeployed(chainId);
+
+  const result = useReadContract({
+    address: addresses.daoGovernor as `0x${string}`,
+    abi: DAO_GOVERNOR_ABI,
+    functionName: "getAllProposalIds",
+    query: {
+      enabled: isDeployed,
+      staleTime: 30_000, // 30 seconds
+    },
+  });
+
+  return {
+    data: result.data as bigint[] | undefined,
+    isLoading: result.isLoading,
+    isError: result.isError,
+    error: result.error,
+    refetch: result.refetch,
+  };
+}
+
+/**
+ * Hook to get all proposals
+ */
+export function useProposals() {
+  const chainId = useChainId();
+  const addresses = getContractAddresses(chainId);
+  const isDeployed = areContractsDeployed(chainId);
+
+  // Get current block number for date calculations
+  const { data: currentBlock } = useBlockNumber();
+
+  // Get proposal IDs from contract
+  const { data: proposalIds, isLoading: idsLoading, refetch: refetchIds } = useProposalIds();
+  const ids = proposalIds ?? [];
+
+  // Build contract calls for all proposals using actual IDs
+  const proposalCalls = ids.map((id) => ({
+    address: addresses.daoGovernor as `0x${string}`,
+    abi: DAO_GOVERNOR_ABI,
+    functionName: "getProposal" as const,
+    args: [id],
+  }));
+
+  const stateCalls = ids.map((id) => ({
+    address: addresses.daoGovernor as `0x${string}`,
+    abi: DAO_GOVERNOR_ABI,
+    functionName: "state" as const,
+    args: [id],
+  }));
+
+  const allCalls = [...proposalCalls, ...stateCalls];
+
+  const { data: results, isLoading: detailsLoading, isError, error, refetch: refetchDetails } = useReadContracts({
+    contracts: allCalls,
+    query: {
+      enabled: isDeployed && ids.length > 0,
+    },
+  });
+
+  // Parse results into proposals
+  const proposals: ProposalListItem[] = [];
+  const now = new Date();
+  if (results && ids.length > 0 && currentBlock) {
+    for (let i = 0; i < ids.length; i++) {
+      const proposalResult = results[i];
+      const stateResult = results[ids.length + i];
+
+      if (proposalResult?.status === "success" && stateResult?.status === "success") {
+        const proposal = proposalResult.result as {
+          id: bigint;
+          proposer: string;
+          description: string;
+          voteStart: bigint;
+          voteEnd: bigint;
+          forVotes: bigint;
+          againstVotes: bigint;
+          abstainVotes: bigint;
+        };
+        const state = stateResult.result as number;
+
+        proposals.push({
+          id: ids[i].toString(),
+          title: extractTitle(proposal.description),
+          description: proposal.description,
+          status: mapProposalState(state),
+          proposer: proposal.proposer,
+          date: blockToDate(proposal.voteStart, currentBlock, now),
+          forVotes: proposal.forVotes,
+          againstVotes: proposal.againstVotes,
+          abstainVotes: proposal.abstainVotes,
+          voteStart: proposal.voteStart,
+          voteEnd: proposal.voteEnd,
+        });
+      }
+    }
+  }
+
+  const refetch = async () => {
+    await refetchIds();
+    await refetchDetails();
+  };
+
+  return {
+    data: proposals,
+    count: ids.length,
+    isLoading: isDeployed ? (idsLoading || detailsLoading) : false,
+    isError: isDeployed ? isError : false,
+    error: isDeployed ? error : null,
+    refetch,
+    isDeployed,
+  };
+}
 
 /**
  * Hook to get proposal count
@@ -40,6 +214,7 @@ export function useProposalCount() {
     isLoading: isDeployed ? result.isLoading : false,
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
+    refetch: result.refetch,
     isDeployed,
   };
 }
@@ -133,15 +308,6 @@ export function useGovernanceParams() {
     },
   });
 
-  const thresholdResult = useReadContract({
-    address: addresses.daoGovernor,
-    abi: DAO_GOVERNOR_ABI,
-    functionName: "proposalThreshold",
-    query: {
-      enabled: isDeployed,
-    },
-  });
-
   const costResult = useReadContract({
     address: addresses.daoGovernor,
     abi: DAO_GOVERNOR_ABI,
@@ -155,23 +321,18 @@ export function useGovernanceParams() {
     quorumResult.isLoading ||
     votingPeriodResult.isLoading ||
     votingDelayResult.isLoading ||
-    thresholdResult.isLoading ||
     costResult.isLoading;
 
   const isError =
     quorumResult.isError ||
     votingPeriodResult.isError ||
     votingDelayResult.isError ||
-    thresholdResult.isError ||
     costResult.isError;
 
   return {
     quorum: isDeployed ? quorumResult.data : MOCK_DATA.quorum,
     votingPeriod: isDeployed ? votingPeriodResult.data : MOCK_DATA.votingPeriod,
     votingDelay: isDeployed ? votingDelayResult.data : MOCK_DATA.votingDelay,
-    proposalThreshold: isDeployed
-      ? thresholdResult.data
-      : MOCK_DATA.proposalThreshold,
     proposalCreationCost: isDeployed
       ? costResult.data
       : MOCK_DATA.proposalCreationCost,
@@ -204,6 +365,7 @@ export function useHasVoted(proposalId: bigint, account: `0x${string}` | undefin
     isLoading: isDeployed ? result.isLoading : false,
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
+    refetch: result.refetch,
     isDeployed,
   };
 }
@@ -215,9 +377,22 @@ export function usePropose() {
   const chainId = useChainId();
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
+  const queryClient = useQueryClient();
+
+  const invalidateProposalQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["proposalIds"] });
+    queryClient.invalidateQueries({ queryKey: ["readContract"] });
+    queryClient.invalidateQueries({ queryKey: ["readContracts"] });
+  };
 
   const { writeContract, writeContractAsync, data, isPending, isError, error, isSuccess } =
-    useWriteContract();
+    useWriteContract({
+      mutation: {
+        onSuccess: () => {
+          invalidateProposalQueries();
+        },
+      },
+    });
 
   const propose = (
     targets: `0x${string}`[],
@@ -241,12 +416,14 @@ export function usePropose() {
     description: string
   ) => {
     if (!isDeployed) throw new Error("Contracts not deployed");
-    return writeContractAsync({
+    const result = await writeContractAsync({
       address: addresses.daoGovernor,
       abi: DAO_GOVERNOR_ABI,
       functionName: "propose",
       args: [targets, values, calldatas, description],
     });
+    invalidateProposalQueries();
+    return result;
   };
 
   return {

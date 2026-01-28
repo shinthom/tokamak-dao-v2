@@ -3,10 +3,14 @@
 import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { useBlockNumber } from "wagmi";
 import { ProposalDetail, type ProposalDetailData } from "@/components/proposals/ProposalDetail";
 import { useProposal, useProposalState } from "@/hooks/contracts/useDAOGovernor";
 import type { ProposalStatus } from "@/types/governance";
 import { formatVTON } from "@/lib/utils";
+
+// Average block time in seconds (Sepolia/Ethereum ~12s)
+const BLOCK_TIME_SECONDS = 12;
 
 // Map contract state (uint8) to ProposalStatus
 function mapProposalState(state: number): ProposalStatus {
@@ -175,13 +179,21 @@ interface ProposalPageProps {
   params: Promise<{ id: string }>;
 }
 
+// Helper function to convert block number to estimated Date
+function blockToDate(blockNumber: bigint, currentBlock: bigint, currentTime: Date): Date {
+  const blockDiff = Number(blockNumber) - Number(currentBlock);
+  const timeDiffMs = blockDiff * BLOCK_TIME_SECONDS * 1000;
+  return new Date(currentTime.getTime() + timeDiffMs);
+}
+
 // Component for real proposals (fetched from contract)
 function RealProposalDetail({ id }: { id: string }) {
   const proposalId = BigInt(id);
   const { data: proposalData, isLoading: proposalLoading, isError: proposalError } = useProposal(proposalId);
   const { data: stateData, isLoading: stateLoading } = useProposalState(proposalId);
+  const { data: currentBlock, isLoading: blockLoading } = useBlockNumber();
 
-  const isLoading = proposalLoading || stateLoading;
+  const isLoading = proposalLoading || stateLoading || blockLoading;
 
   if (isLoading) {
     return (
@@ -215,7 +227,7 @@ function RealProposalDetail({ id }: { id: string }) {
     );
   }
 
-  if (proposalError || !proposalData) {
+  if (proposalError || !proposalData || !currentBlock) {
     notFound();
   }
 
@@ -235,10 +247,13 @@ function RealProposalDetail({ id }: { id: string }) {
   };
 
   const status = mapProposalState(stateData as number);
-  const voteStartTime = new Date(Number(proposal.voteStart) * 1000);
-  const voteEndTime = new Date(Number(proposal.voteEnd) * 1000);
-  // Estimate created time (voting delay before vote start, assume ~1 day)
-  const createdTime = new Date(voteStartTime.getTime() - 24 * 60 * 60 * 1000);
+  const now = new Date();
+
+  // Convert block numbers to dates using current block as reference
+  const voteStartTime = blockToDate(proposal.voteStart, currentBlock, now);
+  const voteEndTime = blockToDate(proposal.voteEnd, currentBlock, now);
+  // Estimate created time from snapshot block
+  const createdTime = blockToDate(proposal.snapshotBlock, currentBlock, now);
 
   const proposalDetail: ProposalDetailData = {
     id: id,

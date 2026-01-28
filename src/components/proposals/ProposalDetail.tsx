@@ -119,8 +119,8 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
               <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none text-[var(--text-secondary)]">
-                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{proposal.description}</p>
+              <div className="prose prose-sm max-w-none text-[var(--text-secondary)] overflow-hidden">
+                <p className="whitespace-pre-wrap break-all">{proposal.description}</p>
               </div>
             </CardContent>
           </Card>

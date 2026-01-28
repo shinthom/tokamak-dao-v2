@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { ProposalCard } from "@/components/ui/proposal-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatVTON } from "@/lib/utils";
+import { useProposals } from "@/hooks/contracts/useDAOGovernor";
 import type { ProposalStatus } from "@/types/governance";
 
 interface ProposalListItem {
@@ -16,13 +17,14 @@ interface ProposalListItem {
   forVotes: number;
   againstVotes: number;
   abstainVotes: number;
-  totalVoters: number;
+  totalVoters?: number;
+  isDemo?: boolean;
 }
 
-// Mock data for development
-const MOCK_PROPOSALS: ProposalListItem[] = [
+// Demo data for showcase
+const DEMO_PROPOSALS: ProposalListItem[] = [
   {
-    id: "1",
+    id: "demo-1",
     title: "TIP-001: Increase staking rewards by 5%",
     status: "active",
     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
@@ -30,9 +32,10 @@ const MOCK_PROPOSALS: ProposalListItem[] = [
     againstVotes: 320000,
     abstainVotes: 45000,
     totalVoters: 156,
+    isDemo: true,
   },
   {
-    id: "2",
+    id: "demo-2",
     title: "TIP-002: Add new liquidity pool for TON/ETH",
     status: "pending",
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
@@ -40,9 +43,10 @@ const MOCK_PROPOSALS: ProposalListItem[] = [
     againstVotes: 210000,
     abstainVotes: 30000,
     totalVoters: 98,
+    isDemo: true,
   },
   {
-    id: "3",
+    id: "demo-3",
     title: "TIP-003: Update governance parameters",
     status: "executed",
     date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
@@ -50,9 +54,10 @@ const MOCK_PROPOSALS: ProposalListItem[] = [
     againstVotes: 150000,
     abstainVotes: 80000,
     totalVoters: 234,
+    isDemo: true,
   },
   {
-    id: "4",
+    id: "demo-4",
     title: "TIP-004: Treasury allocation for ecosystem grants",
     status: "queued",
     date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
@@ -60,9 +65,10 @@ const MOCK_PROPOSALS: ProposalListItem[] = [
     againstVotes: 420000,
     abstainVotes: 60000,
     totalVoters: 189,
+    isDemo: true,
   },
   {
-    id: "5",
+    id: "demo-5",
     title: "TIP-005: Reduce proposal creation cost to 50 TON",
     status: "failed",
     date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
@@ -70,9 +76,10 @@ const MOCK_PROPOSALS: ProposalListItem[] = [
     againstVotes: 890000,
     abstainVotes: 120000,
     totalVoters: 145,
+    isDemo: true,
   },
   {
-    id: "6",
+    id: "demo-6",
     title: "TIP-006: Emergency security patch implementation",
     status: "canceled",
     date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -80,6 +87,7 @@ const MOCK_PROPOSALS: ProposalListItem[] = [
     againstVotes: 10000,
     abstainVotes: 5000,
     totalVoters: 23,
+    isDemo: true,
   },
 ];
 
@@ -89,9 +97,11 @@ const STATUS_FILTERS: { value: FilterStatus; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "pending", label: "Pending" },
+  { value: "succeeded", label: "Succeeded" },
   { value: "queued", label: "Queued" },
   { value: "executed", label: "Executed" },
   { value: "failed", label: "Failed" },
+  { value: "expired", label: "Expired" },
   { value: "canceled", label: "Canceled" },
 ];
 
@@ -104,9 +114,28 @@ export function ProposalsList({ className }: ProposalsListProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<FilterStatus>("all");
 
+  // Fetch real proposals from contract
+  const { data: realProposals, isLoading } = useProposals();
+
+  // Convert real proposals to list items and append demo proposals
+  const proposals: ProposalListItem[] = React.useMemo(() => {
+    const contractProposals = realProposals.map((p) => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      date: p.date,
+      forVotes: Number(formatVTON(p.forVotes)),
+      againstVotes: Number(formatVTON(p.againstVotes)),
+      abstainVotes: Number(formatVTON(p.abstainVotes)),
+      isDemo: false,
+    }));
+    // Real proposals first, then demo proposals
+    return [...contractProposals, ...DEMO_PROPOSALS];
+  }, [realProposals]);
+
   // Filter proposals based on search and status
   const filteredProposals = React.useMemo(() => {
-    return MOCK_PROPOSALS.filter((proposal) => {
+    return proposals.filter((proposal) => {
       const matchesSearch =
         searchQuery === "" ||
         proposal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,7 +146,7 @@ export function ProposalsList({ className }: ProposalsListProps) {
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [proposals, searchQuery, statusFilter]);
 
   const handleProposalClick = (id: string) => {
     router.push(`/proposals/${id}`);
@@ -166,7 +195,14 @@ export function ProposalsList({ className }: ProposalsListProps) {
       </div>
 
       {/* Proposals list */}
-      {filteredProposals.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="text-[var(--text-tertiary)]">
+            <div className="mx-auto size-8 mb-4 border-2 border-[var(--border-default)] border-t-[var(--text-brand)] rounded-full animate-spin" />
+            <p className="text-sm font-medium">Loading proposals...</p>
+          </div>
+        </div>
+      ) : filteredProposals.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-[var(--text-tertiary)]">
             <svg
