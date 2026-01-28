@@ -3,10 +3,10 @@
 import { FaucetCard } from "@/components/faucet";
 
 /**
- * vTON Faucet Page
+ * Testnet Faucet Page
  *
- * Allows users to claim free vTON tokens for testing governance features
- * such as delegation and voting on the testnet.
+ * Allows users to claim free vTON and TON tokens for testing governance features
+ * such as delegation, voting, and creating proposals on the testnet.
  */
 export default function FaucetPage() {
   return (
@@ -17,17 +17,15 @@ export default function FaucetPage() {
           Testnet Faucet
         </h1>
         <p className="text-sm text-[var(--text-secondary)]">
-          Claim free vTON tokens for testing governance features
+          Claim free vTON and TON tokens for testing governance features
         </p>
       </div>
 
       {/* Faucet Card */}
-      <div className="max-w-lg">
-        <FaucetCard />
-      </div>
+      <FaucetCard />
 
       {/* ETH Faucet Notice */}
-      <div className="max-w-lg p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-secondary)]">
+      <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-secondary)]">
         <p className="text-sm text-[var(--text-secondary)]">
           Need Sepolia ETH for gas fees?{" "}
           <a
