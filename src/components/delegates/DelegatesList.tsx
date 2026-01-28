@@ -2,16 +2,17 @@
 
 import * as React from "react";
 import { useAccount } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useAllDelegators, useTotalDelegated, useDelegation } from "@/hooks/contracts/useDelegateRegistry";
+import { useAllDelegates, useTotalDelegated } from "@/hooks/contracts/useDelegateRegistry";
 import { DelegateDetailCard } from "./DelegateDetailCard";
 import { DelegationModal } from "./DelegationModal";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // Mock data for when contracts are not deployed
-const MOCK_DELEGATORS: `0x${string}`[] = [
+const MOCK_DELEGATES: `0x${string}`[] = [
   "0x1234567890123456789012345678901234567890",
   "0x2345678901234567890123456789012345678901",
   "0x3456789012345678901234567890123456789012",
@@ -28,9 +29,9 @@ const MOCK_VOTING_POWER: Record<string, bigint> = {
 };
 
 /**
- * Component to fetch and display voting power for a single delegator
+ * Component to fetch and display voting power for a single delegate
  */
-function DelegatorItem({
+function DelegateItem({
   address,
   rank,
   isCurrentDelegate,
@@ -60,58 +61,51 @@ function DelegatorItem({
 }
 
 /**
- * Delegators List Section
- * Shows all registered delegators with their voting power
+ * Delegates List Section
+ * Shows all registered delegates with their voting power
  */
 export function DelegatesList() {
   const { address: userAddress } = useAccount();
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedDelegatee, setSelectedDelegatee] = React.useState<`0x${string}` | null>(null);
+  const [selectedDelegate, setSelectedDelegate] = React.useState<`0x${string}` | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data: delegators, isLoading, isDeployed, refetch: refetchDelegators } = useAllDelegators();
-  const { data: userDelegation, refetch: refetchUserDelegation } = useDelegation(userAddress);
+  const { data: delegates, isLoading, isDeployed, refetch: refetchDelegates } = useAllDelegates();
 
-  // Get current delegatee
-  const currentDelegatee =
-    userDelegation && typeof userDelegation === "object" && "delegatee" in userDelegation
-      ? (userDelegation.delegatee as `0x${string}` | undefined)
-      : undefined;
-
-  const hasDelegatee = !!(currentDelegatee && currentDelegatee !== ZERO_ADDRESS);
-
-  // Filter delegators by search query
-  const filteredDelegators = React.useMemo(() => {
+  // Filter delegates by search query
+  const filteredDelegates = React.useMemo(() => {
     // Use mock data if contracts not deployed
-    const displayDelegators = isDeployed ? (delegators ?? []) : MOCK_DELEGATORS;
-    if (!searchQuery) return displayDelegators;
+    const displayDelegates = isDeployed ? (delegates ?? []) : MOCK_DELEGATES;
+    if (!searchQuery) return displayDelegates;
     const query = searchQuery.toLowerCase();
-    return displayDelegators.filter((addr) =>
+    return displayDelegates.filter((addr) =>
       addr.toLowerCase().includes(query)
     );
-  }, [isDeployed, delegators, searchQuery]);
+  }, [isDeployed, delegates, searchQuery]);
 
   const handleDelegate = (address: `0x${string}`) => {
-    setSelectedDelegatee(address);
+    setSelectedDelegate(address);
   };
 
   const handleDelegationSuccess = React.useCallback(() => {
-    refetchDelegators();
-    refetchUserDelegation();
-  }, [refetchDelegators, refetchUserDelegation]);
+    refetchDelegates();
+    // Invalidate all getTotalDelegated queries to refresh voting power
+    queryClient.invalidateQueries({ queryKey: ["readContract"] });
+  }, [refetchDelegates, queryClient]);
 
   return (
     <>
       <Card padding="none">
         <CardHeader className="p-6 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle>Delegators</CardTitle>
+            <CardTitle>Delegates</CardTitle>
             <Input
               placeholder="Search by address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="sm:w-64"
               size="sm"
-              aria-label="Search delegators by address"
+              aria-label="Search delegates by address"
             />
           </div>
         </CardHeader>
@@ -125,7 +119,7 @@ export function DelegatesList() {
           )}
 
           {isLoading ? (
-            <div className="space-y-3" role="status" aria-busy="true" aria-label="Loading delegators">
+            <div className="space-y-3" role="status" aria-busy="true" aria-label="Loading delegates">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
@@ -133,22 +127,22 @@ export function DelegatesList() {
                 />
               ))}
             </div>
-          ) : filteredDelegators.length === 0 ? (
+          ) : filteredDelegates.length === 0 ? (
             <div className="text-center py-8 text-[var(--text-tertiary)]">
               <p className="text-sm">
                 {searchQuery
-                  ? "No delegators found matching your search"
-                  : "No delegators registered yet"}
+                  ? "No delegates found matching your search"
+                  : "No delegates registered yet"}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredDelegators.map((address, index) => (
-                <DelegatorItem
+              {filteredDelegates.map((address, index) => (
+                <DelegateItem
                   key={address}
                   address={address}
                   rank={index + 1}
-                  isCurrentDelegate={!!(hasDelegatee && currentDelegatee === address)}
+                  isCurrentDelegate={false}
                   onDelegate={handleDelegate}
                 />
               ))}
@@ -157,11 +151,11 @@ export function DelegatesList() {
         </CardContent>
       </Card>
 
-      {selectedDelegatee && (
+      {selectedDelegate && (
         <DelegationModal
-          open={!!selectedDelegatee}
-          onClose={() => setSelectedDelegatee(null)}
-          delegatee={selectedDelegatee}
+          open={!!selectedDelegate}
+          onClose={() => setSelectedDelegate(null)}
+          delegatee={selectedDelegate}
           mode="delegate"
           onSuccess={handleDelegationSuccess}
         />

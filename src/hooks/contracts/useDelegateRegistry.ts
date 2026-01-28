@@ -10,21 +10,22 @@ import {
 
 // Mock data for when contracts are not deployed
 const MOCK_DATA = {
-  delegators: [] as `0x${string}`[],
+  delegates: [] as `0x${string}`[],
   totalDelegated: BigInt(0),
   delegationPeriodRequirement: BigInt(604800), // 7 days in seconds
-  delegatorInfo: {
+  delegateInfo: {
     profile: "",
-    philosophy: "",
-    interests: [] as string[],
-    isRegistered: false,
+    votingPhilosophy: "",
+    interests: "",
+    registeredAt: BigInt(0),
+    isActive: false,
   },
 };
 
 /**
- * Hook to get all delegators
+ * Hook to get all delegates (registered to receive delegations)
  */
-export function useAllDelegators() {
+export function useAllDelegates() {
   const chainId = useChainId();
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
@@ -32,14 +33,14 @@ export function useAllDelegators() {
   const result = useReadContract({
     address: addresses.delegateRegistry,
     abi: DELEGATE_REGISTRY_ABI,
-    functionName: "getAllDelegators",
+    functionName: "getAllDelegates",
     query: {
       enabled: isDeployed,
     },
   });
 
   return {
-    data: isDeployed ? result.data : MOCK_DATA.delegators,
+    data: isDeployed ? result.data : MOCK_DATA.delegates,
     isLoading: isDeployed ? result.isLoading : false,
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
@@ -49,7 +50,7 @@ export function useAllDelegators() {
 }
 
 /**
- * Hook to get total delegated amount to an address
+ * Hook to get total delegated amount to a delegate
  */
 export function useTotalDelegated(address?: `0x${string}`) {
   const chainId = useChainId();
@@ -77,9 +78,9 @@ export function useTotalDelegated(address?: `0x${string}`) {
 }
 
 /**
- * Hook to get delegation info for an address
+ * Hook to get delegation info for a delegator (owner) to a specific delegate
  */
-export function useDelegation(address?: `0x${string}`) {
+export function useDelegation(ownerAddress?: `0x${string}`, delegateAddress?: `0x${string}`) {
   const chainId = useChainId();
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
@@ -88,16 +89,16 @@ export function useDelegation(address?: `0x${string}`) {
     address: addresses.delegateRegistry,
     abi: DELEGATE_REGISTRY_ABI,
     functionName: "getDelegation",
-    args: address ? [address] : undefined,
+    args: ownerAddress && delegateAddress ? [ownerAddress, delegateAddress] : undefined,
     query: {
-      enabled: isDeployed && !!address,
+      enabled: isDeployed && !!ownerAddress && !!delegateAddress,
     },
   });
 
   return {
-    data: isDeployed && address
+    data: isDeployed && ownerAddress && delegateAddress
       ? result.data
-      : { delegatee: undefined, amount: BigInt(0) },
+      : { delegate: undefined, amount: BigInt(0), delegatedAt: BigInt(0), expiresAt: BigInt(0) },
     isLoading: isDeployed ? result.isLoading : false,
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
@@ -134,7 +135,7 @@ export function useDelegationParams() {
 }
 
 /**
- * Hook to delegate vTON to a delegatee
+ * Hook to delegate vTON to a delegate
  */
 export function useDelegate() {
   const chainId = useChainId();
@@ -152,7 +153,7 @@ export function useDelegate() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({ hash });
 
-  const delegate = (delegatee: `0x${string}`, amount: bigint) => {
+  const delegate = (delegateAddr: `0x${string}`, amount: bigint) => {
     if (!isDeployed) {
       console.warn("Contracts not deployed, delegate action skipped");
       return;
@@ -161,7 +162,7 @@ export function useDelegate() {
       address: addresses.delegateRegistry,
       abi: DELEGATE_REGISTRY_ABI,
       functionName: "delegate",
-      args: [delegatee, amount],
+      args: [delegateAddr, amount],
     });
   };
 
@@ -178,7 +179,7 @@ export function useDelegate() {
 }
 
 /**
- * Hook to undelegate vTON from a delegatee
+ * Hook to undelegate vTON from a delegate
  */
 export function useUndelegate() {
   const chainId = useChainId();
@@ -196,7 +197,7 @@ export function useUndelegate() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({ hash });
 
-  const undelegate = (delegatee: `0x${string}`, amount: bigint) => {
+  const undelegate = (delegateAddr: `0x${string}`, amount: bigint) => {
     if (!isDeployed) {
       console.warn("Contracts not deployed, undelegate action skipped");
       return;
@@ -205,7 +206,7 @@ export function useUndelegate() {
       address: addresses.delegateRegistry,
       abi: DELEGATE_REGISTRY_ABI,
       functionName: "undelegate",
-      args: [delegatee, amount],
+      args: [delegateAddr, amount],
     });
   };
 
@@ -222,9 +223,9 @@ export function useUndelegate() {
 }
 
 /**
- * Hook to get delegator info for an address
+ * Hook to get delegate info for a registered delegate
  */
-export function useDelegatorInfo(address?: `0x${string}`) {
+export function useDelegateInfo(address?: `0x${string}`) {
   const chainId = useChainId();
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
@@ -232,25 +233,26 @@ export function useDelegatorInfo(address?: `0x${string}`) {
   const result = useReadContract({
     address: addresses.delegateRegistry,
     abi: DELEGATE_REGISTRY_ABI,
-    functionName: "getDelegatorInfo",
+    functionName: "getDelegateInfo",
     args: address ? [address] : undefined,
     query: {
       enabled: isDeployed && !!address,
     },
   });
 
-  // Parse the result tuple into an object
+  // Parse the result struct
   const data = React.useMemo(() => {
     if (!isDeployed || !address || !result.data) {
-      return MOCK_DATA.delegatorInfo;
+      return MOCK_DATA.delegateInfo;
     }
-    const [profile, philosophy, interests, isRegistered] = result.data as [
-      string,
-      string,
-      string[],
-      boolean
-    ];
-    return { profile, philosophy, interests, isRegistered };
+    const info = result.data as {
+      profile: string;
+      votingPhilosophy: string;
+      interests: string;
+      registeredAt: bigint;
+      isActive: boolean;
+    };
+    return info;
   }, [isDeployed, address, result.data]);
 
   return {
@@ -264,9 +266,9 @@ export function useDelegatorInfo(address?: `0x${string}`) {
 }
 
 /**
- * Hook to register as a delegator
+ * Hook to register as a delegate
  */
-export function useRegisterDelegator() {
+export function useRegisterDelegate() {
   const chainId = useChainId();
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
@@ -282,25 +284,25 @@ export function useRegisterDelegator() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({ hash });
 
-  const registerDelegator = (
+  const registerDelegate = (
     profile: string,
     philosophy: string,
     interests: string[]
   ) => {
     if (!isDeployed) {
-      console.warn("Contracts not deployed, registerDelegator action skipped");
+      console.warn("Contracts not deployed, registerDelegate action skipped");
       return;
     }
     writeContract({
       address: addresses.delegateRegistry,
       abi: DELEGATE_REGISTRY_ABI,
-      functionName: "registerDelegator",
+      functionName: "registerDelegate",
       args: [profile, philosophy, interests.join(", ")],
     });
   };
 
   return {
-    registerDelegator,
+    registerDelegate,
     hash,
     isPending,
     isConfirming,
@@ -312,9 +314,9 @@ export function useRegisterDelegator() {
 }
 
 /**
- * Hook to check if an address is a registered delegator
+ * Hook to check if an address is a registered delegate
  */
-export function useIsRegisteredDelegator(address?: `0x${string}`) {
+export function useIsRegisteredDelegate(address?: `0x${string}`) {
   const chainId = useChainId();
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
@@ -322,7 +324,7 @@ export function useIsRegisteredDelegator(address?: `0x${string}`) {
   const result = useReadContract({
     address: addresses.delegateRegistry,
     abi: DELEGATE_REGISTRY_ABI,
-    functionName: "isRegisteredDelegator",
+    functionName: "isRegisteredDelegate",
     args: address ? [address] : undefined,
     query: {
       enabled: isDeployed && !!address,
@@ -340,10 +342,10 @@ export function useIsRegisteredDelegator(address?: `0x${string}`) {
 }
 
 /**
- * Hook to get voting power for a delegator at a specific block
+ * Hook to get voting power for a delegate at a specific block
  */
-export function useDelegatorVotingPower(
-  delegator?: `0x${string}`,
+export function useDelegateVotingPower(
+  delegateAddr?: `0x${string}`,
   blockNumber?: bigint,
   snapshotBlock?: bigint
 ) {
@@ -356,11 +358,11 @@ export function useDelegatorVotingPower(
     abi: DELEGATE_REGISTRY_ABI,
     functionName: "getVotingPower",
     args:
-      delegator && blockNumber && snapshotBlock
-        ? [delegator, blockNumber, snapshotBlock]
+      delegateAddr && blockNumber && snapshotBlock
+        ? [delegateAddr, blockNumber, snapshotBlock]
         : undefined,
     query: {
-      enabled: isDeployed && !!delegator && !!blockNumber && !!snapshotBlock,
+      enabled: isDeployed && !!delegateAddr && !!blockNumber && !!snapshotBlock,
     },
   });
 
@@ -374,7 +376,7 @@ export function useDelegatorVotingPower(
 }
 
 /**
- * Hook to redelegate vTON from one delegatee to another
+ * Hook to redelegate vTON from one delegate to another
  */
 export function useRedelegate() {
   const chainId = useChainId();
@@ -393,8 +395,8 @@ export function useRedelegate() {
     useWaitForTransactionReceipt({ hash });
 
   const redelegate = (
-    fromDelegator: `0x${string}`,
-    toDelegator: `0x${string}`,
+    fromDelegate: `0x${string}`,
+    toDelegate: `0x${string}`,
     amount: bigint
   ) => {
     if (!isDeployed) {
@@ -405,7 +407,7 @@ export function useRedelegate() {
       address: addresses.delegateRegistry,
       abi: DELEGATE_REGISTRY_ABI,
       functionName: "redelegate",
-      args: [fromDelegator, toDelegator, amount],
+      args: [fromDelegate, toDelegate, amount],
     });
   };
 

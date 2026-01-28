@@ -11,8 +11,8 @@ contract DelegateRegistryTest is Test {
     DelegateRegistry public registry;
 
     address public owner;
-    address public delegator1;
-    address public delegator2;
+    address public delegate1;
+    address public delegate2;
     address public user1;
     address public user2;
 
@@ -20,8 +20,8 @@ contract DelegateRegistryTest is Test {
 
     function setUp() public {
         owner = makeAddr("owner");
-        delegator1 = makeAddr("delegator1");
-        delegator2 = makeAddr("delegator2");
+        delegate1 = makeAddr("delegate1");
+        delegate2 = makeAddr("delegate2");
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
 
@@ -49,14 +49,14 @@ contract DelegateRegistryTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        DELEGATOR REGISTRATION
+                        DELEGATE REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
-    function test_RegisterDelegator() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Long-term value", "No conflicts");
+    function test_RegisterDelegate() public {
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Long-term value", "No conflicts");
 
-        IDelegateRegistry.DelegatorInfo memory info = registry.getDelegatorInfo(delegator1);
+        IDelegateRegistry.DelegateInfo memory info = registry.getDelegateInfo(delegate1);
         assertEq(info.profile, "Alice");
         assertEq(info.votingPhilosophy, "Long-term value");
         assertEq(info.interests, "No conflicts");
@@ -64,41 +64,41 @@ contract DelegateRegistryTest is Test {
         assertGt(info.registeredAt, 0);
     }
 
-    function test_RegisterDelegatorRevertsIfAlreadyRegistered() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+    function test_RegisterDelegateRevertsIfAlreadyRegistered() public {
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
-        vm.prank(delegator1);
-        vm.expectRevert(DelegateRegistry.AlreadyRegisteredDelegator.selector);
-        registry.registerDelegator("Alice2", "Philosophy2", "Interests2");
+        vm.prank(delegate1);
+        vm.expectRevert(DelegateRegistry.AlreadyRegisteredDelegate.selector);
+        registry.registerDelegate("Alice2", "Philosophy2", "Interests2");
     }
 
-    function test_RegisterDelegatorRevertsWithEmptyProfile() public {
-        vm.prank(delegator1);
+    function test_RegisterDelegateRevertsWithEmptyProfile() public {
+        vm.prank(delegate1);
         vm.expectRevert(DelegateRegistry.EmptyProfile.selector);
-        registry.registerDelegator("", "Philosophy", "Interests");
+        registry.registerDelegate("", "Philosophy", "Interests");
     }
 
-    function test_UpdateDelegator() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy1", "Interests1");
+    function test_UpdateDelegate() public {
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy1", "Interests1");
 
-        vm.prank(delegator1);
-        registry.updateDelegator("Alice Updated", "Philosophy2", "Interests2");
+        vm.prank(delegate1);
+        registry.updateDelegate("Alice Updated", "Philosophy2", "Interests2");
 
-        IDelegateRegistry.DelegatorInfo memory info = registry.getDelegatorInfo(delegator1);
+        IDelegateRegistry.DelegateInfo memory info = registry.getDelegateInfo(delegate1);
         assertEq(info.profile, "Alice Updated");
         assertEq(info.votingPhilosophy, "Philosophy2");
     }
 
-    function test_DeactivateDelegator() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+    function test_DeactivateDelegate() public {
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
-        vm.prank(delegator1);
-        registry.deactivateDelegator();
+        vm.prank(delegate1);
+        registry.deactivateDelegate();
 
-        assertFalse(registry.isRegisteredDelegator(delegator1));
+        assertFalse(registry.isRegisteredDelegate(delegate1));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -106,46 +106,46 @@ contract DelegateRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_Delegate() public {
-        // Register delegator first
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+        // Register delegate first
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
         uint256 amount = 1000 ether;
 
         vm.prank(user1);
-        registry.delegate(delegator1, amount);
+        registry.delegate(delegate1, amount);
 
-        assertEq(registry.getTotalDelegated(delegator1), amount);
+        assertEq(registry.getTotalDelegated(delegate1), amount);
         assertEq(token.balanceOf(address(registry)), amount);
         assertEq(token.balanceOf(user1), INITIAL_BALANCE - amount);
 
         IDelegateRegistry.DelegationInfo memory delegation =
-            registry.getDelegation(user1, delegator1);
-        assertEq(delegation.delegator, delegator1);
+            registry.getDelegation(user1, delegate1);
+        assertEq(delegation.delegate, delegate1);
         assertEq(delegation.amount, amount);
     }
 
     function test_DelegateRevertsIfNotRegistered() public {
         vm.prank(user1);
-        vm.expectRevert(DelegateRegistry.DelegatorNotActive.selector);
-        registry.delegate(delegator1, 1000 ether);
+        vm.expectRevert(DelegateRegistry.DelegateNotActive.selector);
+        registry.delegate(delegate1, 1000 ether);
     }
 
-    function test_DelegateRevertsIfDelegatorInactive() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+    function test_DelegateRevertsIfDelegateInactive() public {
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
-        vm.prank(delegator1);
-        registry.deactivateDelegator();
+        vm.prank(delegate1);
+        registry.deactivateDelegate();
 
         vm.prank(user1);
-        vm.expectRevert(DelegateRegistry.DelegatorNotActive.selector);
-        registry.delegate(delegator1, 1000 ether);
+        vm.expectRevert(DelegateRegistry.DelegateNotActive.selector);
+        registry.delegate(delegate1, 1000 ether);
     }
 
     function test_SelfDelegationAllowed() public {
         vm.prank(user1);
-        registry.registerDelegator("User1", "Philosophy", "Interests");
+        registry.registerDelegate("User1", "Philosophy", "Interests");
 
         vm.prank(user1);
         registry.delegate(user1, 1000 ether);
@@ -154,14 +154,14 @@ contract DelegateRegistryTest is Test {
     }
 
     function test_DelegateFullBalance() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
         // Delegate user1's full balance (10_000) - should succeed without cap
         vm.prank(user1);
-        registry.delegate(delegator1, INITIAL_BALANCE);
+        registry.delegate(delegate1, INITIAL_BALANCE);
 
-        assertEq(registry.getTotalDelegated(delegator1), INITIAL_BALANCE);
+        assertEq(registry.getTotalDelegated(delegate1), INITIAL_BALANCE);
         assertEq(token.balanceOf(user1), 0);
     }
 
@@ -170,48 +170,48 @@ contract DelegateRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_Undelegate() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
         uint256 delegateAmount = 1000 ether;
         uint256 undelegateAmount = 400 ether;
 
         vm.prank(user1);
-        registry.delegate(delegator1, delegateAmount);
+        registry.delegate(delegate1, delegateAmount);
 
         vm.prank(user1);
-        registry.undelegate(delegator1, undelegateAmount);
+        registry.undelegate(delegate1, undelegateAmount);
 
-        assertEq(registry.getTotalDelegated(delegator1), delegateAmount - undelegateAmount);
+        assertEq(registry.getTotalDelegated(delegate1), delegateAmount - undelegateAmount);
         assertEq(token.balanceOf(user1), INITIAL_BALANCE - delegateAmount + undelegateAmount);
     }
 
     function test_UndelegateAll() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
         uint256 amount = 1000 ether;
 
         vm.prank(user1);
-        registry.delegate(delegator1, amount);
+        registry.delegate(delegate1, amount);
 
         vm.prank(user1);
-        registry.undelegate(delegator1, amount);
+        registry.undelegate(delegate1, amount);
 
-        assertEq(registry.getTotalDelegated(delegator1), 0);
+        assertEq(registry.getTotalDelegated(delegate1), 0);
         assertEq(token.balanceOf(user1), INITIAL_BALANCE);
     }
 
     function test_UndelegateRevertsIfInsufficientDelegation() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
         vm.prank(user1);
-        registry.delegate(delegator1, 1000 ether);
+        registry.delegate(delegate1, 1000 ether);
 
         vm.prank(user1);
         vm.expectRevert(DelegateRegistry.InsufficientDelegation.selector);
-        registry.undelegate(delegator1, 1001 ether);
+        registry.undelegate(delegate1, 1001 ether);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -219,42 +219,42 @@ contract DelegateRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_Redelegate() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy1", "Interests1");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy1", "Interests1");
 
-        vm.prank(delegator2);
-        registry.registerDelegator("Bob", "Philosophy2", "Interests2");
+        vm.prank(delegate2);
+        registry.registerDelegate("Bob", "Philosophy2", "Interests2");
 
         uint256 amount = 1000 ether;
 
         vm.prank(user1);
-        registry.delegate(delegator1, amount);
+        registry.delegate(delegate1, amount);
 
         vm.prank(user1);
-        registry.redelegate(delegator1, delegator2, amount);
+        registry.redelegate(delegate1, delegate2, amount);
 
-        assertEq(registry.getTotalDelegated(delegator1), 0);
-        assertEq(registry.getTotalDelegated(delegator2), amount);
+        assertEq(registry.getTotalDelegated(delegate1), 0);
+        assertEq(registry.getTotalDelegated(delegate2), amount);
     }
 
     function test_RedelegatePartial() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy1", "Interests1");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy1", "Interests1");
 
-        vm.prank(delegator2);
-        registry.registerDelegator("Bob", "Philosophy2", "Interests2");
+        vm.prank(delegate2);
+        registry.registerDelegate("Bob", "Philosophy2", "Interests2");
 
         uint256 amount = 1000 ether;
         uint256 redelegateAmount = 400 ether;
 
         vm.prank(user1);
-        registry.delegate(delegator1, amount);
+        registry.delegate(delegate1, amount);
 
         vm.prank(user1);
-        registry.redelegate(delegator1, delegator2, redelegateAmount);
+        registry.redelegate(delegate1, delegate2, redelegateAmount);
 
-        assertEq(registry.getTotalDelegated(delegator1), amount - redelegateAmount);
-        assertEq(registry.getTotalDelegated(delegator2), redelegateAmount);
+        assertEq(registry.getTotalDelegated(delegate1), amount - redelegateAmount);
+        assertEq(registry.getTotalDelegated(delegate2), redelegateAmount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -280,15 +280,15 @@ contract DelegateRegistryTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testFuzz_DelegateAnyAmount(uint256 amount) public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Alice", "Philosophy", "Interests");
+        vm.prank(delegate1);
+        registry.registerDelegate("Alice", "Philosophy", "Interests");
 
         // Can delegate any amount up to user's balance
         amount = bound(amount, 1, INITIAL_BALANCE);
 
         vm.prank(user1);
-        registry.delegate(delegator1, amount);
+        registry.delegate(delegate1, amount);
 
-        assertEq(registry.getTotalDelegated(delegator1), amount);
+        assertEq(registry.getTotalDelegated(delegate1), amount);
     }
 }

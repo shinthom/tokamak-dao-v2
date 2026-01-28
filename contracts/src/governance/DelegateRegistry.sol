@@ -10,9 +10,9 @@ import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.s
 import { IDelegateRegistry } from "../interfaces/IDelegateRegistry.sol";
 
 /// @title DelegateRegistry - vTON Delegation Management
-/// @notice Manages delegator registration and vTON delegation
+/// @notice Manages delegate registration and vTON delegation
 /// @dev Key features per vTON DAO Governance Model:
-///      - Delegators must register with profile, voting philosophy, interests
+///      - Delegates must register with profile, voting philosophy, interests
 ///      - vTON holders MUST delegate to vote (cannot vote directly)
 ///      - 7-day minimum delegation period for voting power
 ///      - Optional auto-expiry for delegations
@@ -24,9 +24,9 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error NotRegisteredDelegator();
-    error AlreadyRegisteredDelegator();
-    error DelegatorNotActive();
+    error NotRegisteredDelegate();
+    error AlreadyRegisteredDelegate();
+    error DelegateNotActive();
     error InsufficientDelegation();
     error ZeroAmount();
     error ZeroAddress();
@@ -53,31 +53,31 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     /// @notice Auto-expiry period for delegations (0 = no expiry)
     uint256 public override autoExpiryPeriod;
 
-    /// @notice Registered delegators
-    mapping(address => DelegatorInfo) private _delegators;
+    /// @notice Registered delegates
+    mapping(address => DelegateInfo) private _delegates;
 
-    /// @notice Delegations: owner => delegator => DelegationInfo
+    /// @notice Delegations: owner => delegate => DelegationInfo
     mapping(address => mapping(address => DelegationInfo)) private _delegations;
 
-    /// @notice Total delegated to each delegator
+    /// @notice Total delegated to each delegate
     mapping(address => uint256) private _totalDelegated;
 
     /// @notice Total delegated by each owner
     mapping(address => uint256) private _totalDelegatedBy;
 
-    /// @notice Historical voting power checkpoints for each delegator
+    /// @notice Historical voting power checkpoints for each delegate
     mapping(address => Checkpoints.Trace208) private _votingPowerCheckpoints;
 
-    /// @notice List of all registered delegator addresses
-    address[] private _delegatorList;
+    /// @notice List of all registered delegate addresses
+    address[] private _delegateList;
 
     /// @notice Delegation timestamps for voting power calculation
-    /// @dev delegator => owner => delegatedAt timestamp
+    /// @dev delegate => owner => delegatedAt timestamp
     mapping(address => mapping(address => uint256)) private _delegationTimestamps;
 
-    /// @notice List of addresses that delegated to each delegator
-    /// @dev delegator => list of owners who delegated to them
-    mapping(address => address[]) private _delegatorsToOwners;
+    /// @notice List of addresses that delegated to each delegate
+    /// @dev delegate => list of owners who delegated to them
+    mapping(address => address[]) private _delegatesToOwners;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -95,19 +95,19 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     }
 
     /*//////////////////////////////////////////////////////////////
-                         DELEGATOR REGISTRATION
+                         DELEGATE REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDelegateRegistry
-    function registerDelegator(
+    function registerDelegate(
         string calldata profile,
         string calldata votingPhilosophy,
         string calldata interests
     ) external override {
         if (bytes(profile).length == 0) revert EmptyProfile();
-        if (_delegators[msg.sender].registeredAt != 0) revert AlreadyRegisteredDelegator();
+        if (_delegates[msg.sender].registeredAt != 0) revert AlreadyRegisteredDelegate();
 
-        _delegators[msg.sender] = DelegatorInfo({
+        _delegates[msg.sender] = DelegateInfo({
             profile: profile,
             votingPhilosophy: votingPhilosophy,
             interests: interests,
@@ -115,36 +115,36 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
             isActive: true
         });
 
-        _delegatorList.push(msg.sender);
+        _delegateList.push(msg.sender);
 
-        emit DelegatorRegistered(msg.sender, profile, votingPhilosophy, interests);
+        emit DelegateRegistered(msg.sender, profile, votingPhilosophy, interests);
     }
 
     /// @inheritdoc IDelegateRegistry
-    function updateDelegator(
+    function updateDelegate(
         string calldata profile,
         string calldata votingPhilosophy,
         string calldata interests
     ) external override {
         if (bytes(profile).length == 0) revert EmptyProfile();
-        DelegatorInfo storage info = _delegators[msg.sender];
-        if (info.registeredAt == 0) revert NotRegisteredDelegator();
+        DelegateInfo storage info = _delegates[msg.sender];
+        if (info.registeredAt == 0) revert NotRegisteredDelegate();
 
         info.profile = profile;
         info.votingPhilosophy = votingPhilosophy;
         info.interests = interests;
 
-        emit DelegatorUpdated(msg.sender, profile, votingPhilosophy, interests);
+        emit DelegateUpdated(msg.sender, profile, votingPhilosophy, interests);
     }
 
     /// @inheritdoc IDelegateRegistry
-    function deactivateDelegator() external override {
-        DelegatorInfo storage info = _delegators[msg.sender];
-        if (info.registeredAt == 0) revert NotRegisteredDelegator();
+    function deactivateDelegate() external override {
+        DelegateInfo storage info = _delegates[msg.sender];
+        if (info.registeredAt == 0) revert NotRegisteredDelegate();
 
         info.isActive = false;
 
-        emit DelegatorDeactivated(msg.sender);
+        emit DelegateDeactivated(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -152,19 +152,19 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDelegateRegistry
-    function delegate(address delegator, uint256 amount) external override nonReentrant {
-        if (delegator == address(0)) revert ZeroAddress();
+    function delegate(address delegateAddr, uint256 amount) external override nonReentrant {
+        if (delegateAddr == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
 
-        DelegatorInfo storage info = _delegators[delegator];
-        if (info.registeredAt == 0 || !info.isActive) revert DelegatorNotActive();
+        DelegateInfo storage info = _delegates[delegateAddr];
+        if (info.registeredAt == 0 || !info.isActive) revert DelegateNotActive();
 
         // Transfer vTON to this contract
         vTON.safeTransferFrom(msg.sender, address(this), amount);
 
         // Update delegation info
-        DelegationInfo storage delegation = _delegations[msg.sender][delegator];
-        delegation.delegator = delegator;
+        DelegationInfo storage delegation = _delegations[msg.sender][delegateAddr];
+        delegation.delegate = delegateAddr;
         delegation.amount += amount;
         delegation.delegatedAt = block.timestamp;
 
@@ -174,92 +174,92 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         }
 
         // Update totals
-        _totalDelegated[delegator] += amount;
+        _totalDelegated[delegateAddr] += amount;
         _totalDelegatedBy[msg.sender] += amount;
 
         // Record delegation timestamp for voting power calculation
         // Only add to owners list if this is a new delegation
-        if (_delegationTimestamps[delegator][msg.sender] == 0) {
-            _delegatorsToOwners[delegator].push(msg.sender);
+        if (_delegationTimestamps[delegateAddr][msg.sender] == 0) {
+            _delegatesToOwners[delegateAddr].push(msg.sender);
         }
-        _delegationTimestamps[delegator][msg.sender] = block.timestamp;
+        _delegationTimestamps[delegateAddr][msg.sender] = block.timestamp;
 
         // Update voting power checkpoint
-        _updateVotingPowerCheckpoint(delegator);
+        _updateVotingPowerCheckpoint(delegateAddr);
 
-        emit Delegated(msg.sender, delegator, amount, delegation.expiresAt);
+        emit Delegated(msg.sender, delegateAddr, amount, delegation.expiresAt);
     }
 
     /// @inheritdoc IDelegateRegistry
-    function undelegate(address delegator, uint256 amount) external override nonReentrant {
-        if (delegator == address(0)) revert ZeroAddress();
+    function undelegate(address delegateAddr, uint256 amount) external override nonReentrant {
+        if (delegateAddr == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
 
-        DelegationInfo storage delegation = _delegations[msg.sender][delegator];
+        DelegationInfo storage delegation = _delegations[msg.sender][delegateAddr];
         if (delegation.amount < amount) revert InsufficientDelegation();
 
         // Update delegation info
         delegation.amount -= amount;
         if (delegation.amount == 0) {
-            delete _delegations[msg.sender][delegator];
-            delete _delegationTimestamps[delegator][msg.sender];
+            delete _delegations[msg.sender][delegateAddr];
+            delete _delegationTimestamps[delegateAddr][msg.sender];
         }
 
         // Update totals
-        _totalDelegated[delegator] -= amount;
+        _totalDelegated[delegateAddr] -= amount;
         _totalDelegatedBy[msg.sender] -= amount;
 
         // Update voting power checkpoint
-        _updateVotingPowerCheckpoint(delegator);
+        _updateVotingPowerCheckpoint(delegateAddr);
 
         // Return vTON to owner
         vTON.safeTransfer(msg.sender, amount);
 
-        emit Undelegated(msg.sender, delegator, amount);
+        emit Undelegated(msg.sender, delegateAddr, amount);
     }
 
     /// @inheritdoc IDelegateRegistry
     function redelegate(
-        address fromDelegator,
-        address toDelegator,
+        address fromDelegate,
+        address toDelegate,
         uint256 amount
     ) external override nonReentrant {
-        if (fromDelegator == address(0) || toDelegator == address(0)) revert ZeroAddress();
+        if (fromDelegate == address(0) || toDelegate == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
 
-        DelegatorInfo storage toInfo = _delegators[toDelegator];
-        if (toInfo.registeredAt == 0 || !toInfo.isActive) revert DelegatorNotActive();
+        DelegateInfo storage toInfo = _delegates[toDelegate];
+        if (toInfo.registeredAt == 0 || !toInfo.isActive) revert DelegateNotActive();
 
-        DelegationInfo storage fromDelegation = _delegations[msg.sender][fromDelegator];
+        DelegationInfo storage fromDelegation = _delegations[msg.sender][fromDelegate];
         if (fromDelegation.amount < amount) revert InsufficientDelegation();
 
         // Update from delegation
         fromDelegation.amount -= amount;
         if (fromDelegation.amount == 0) {
-            delete _delegations[msg.sender][fromDelegator];
-            delete _delegationTimestamps[fromDelegator][msg.sender];
+            delete _delegations[msg.sender][fromDelegate];
+            delete _delegationTimestamps[fromDelegate][msg.sender];
         }
-        _totalDelegated[fromDelegator] -= amount;
+        _totalDelegated[fromDelegate] -= amount;
 
         // Update to delegation
-        DelegationInfo storage toDelegation = _delegations[msg.sender][toDelegator];
-        toDelegation.delegator = toDelegator;
+        DelegationInfo storage toDelegation = _delegations[msg.sender][toDelegate];
+        toDelegation.delegate = toDelegate;
         toDelegation.amount += amount;
         toDelegation.delegatedAt = block.timestamp;
         if (autoExpiryPeriod > 0) {
             toDelegation.expiresAt = block.timestamp + autoExpiryPeriod;
         }
-        _totalDelegated[toDelegator] += amount;
+        _totalDelegated[toDelegate] += amount;
 
         // Record new delegation timestamp
-        _delegationTimestamps[toDelegator][msg.sender] = block.timestamp;
+        _delegationTimestamps[toDelegate][msg.sender] = block.timestamp;
 
         // Update voting power checkpoints
-        _updateVotingPowerCheckpoint(fromDelegator);
-        _updateVotingPowerCheckpoint(toDelegator);
+        _updateVotingPowerCheckpoint(fromDelegate);
+        _updateVotingPowerCheckpoint(toDelegate);
 
-        emit Undelegated(msg.sender, fromDelegator, amount);
-        emit Delegated(msg.sender, toDelegator, amount, toDelegation.expiresAt);
+        emit Undelegated(msg.sender, fromDelegate, amount);
+        emit Delegated(msg.sender, toDelegate, amount, toDelegation.expiresAt);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -267,34 +267,34 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDelegateRegistry
-    function getDelegatorInfo(
-        address delegator
-    ) external view override returns (DelegatorInfo memory) {
-        return _delegators[delegator];
+    function getDelegateInfo(
+        address delegateAddr
+    ) external view override returns (DelegateInfo memory) {
+        return _delegates[delegateAddr];
     }
 
     /// @inheritdoc IDelegateRegistry
-    function isRegisteredDelegator(address account) external view override returns (bool) {
-        return _delegators[account].registeredAt != 0 && _delegators[account].isActive;
+    function isRegisteredDelegate(address account) external view override returns (bool) {
+        return _delegates[account].registeredAt != 0 && _delegates[account].isActive;
     }
 
     /// @inheritdoc IDelegateRegistry
-    function getTotalDelegated(address delegator) external view override returns (uint256) {
-        return _totalDelegated[delegator];
+    function getTotalDelegated(address delegateAddr) external view override returns (uint256) {
+        return _totalDelegated[delegateAddr];
     }
 
     /// @inheritdoc IDelegateRegistry
     function getDelegation(
         address owner,
-        address delegator
+        address delegateAddr
     ) external view override returns (DelegationInfo memory) {
-        return _delegations[owner][delegator];
+        return _delegations[owner][delegateAddr];
     }
 
     /// @inheritdoc IDelegateRegistry
     /// @dev Only counts delegations made 7+ days before the snapshot block
     function getVotingPower(
-        address delegator,
+        address delegateAddr,
         uint256, /* blockNumber */
         uint256 /* snapshotBlock */
     ) external view override returns (uint256) {
@@ -303,15 +303,15 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         uint256 cutoffTime = block.timestamp - delegationPeriodRequirement;
 
         uint256 votingPower = 0;
-        address[] storage owners = _delegatorsToOwners[delegator];
+        address[] storage owners = _delegatesToOwners[delegateAddr];
         uint256 len = owners.length;
 
         for (uint256 i = 0; i < len; i++) {
             address owner = owners[i];
-            uint256 delegatedAt = _delegationTimestamps[delegator][owner];
+            uint256 delegatedAt = _delegationTimestamps[delegateAddr][owner];
 
             if (delegatedAt > 0 && delegatedAt <= cutoffTime) {
-                DelegationInfo memory delegation = _delegations[owner][delegator];
+                DelegationInfo memory delegation = _delegations[owner][delegateAddr];
                 if (delegation.amount > 0) {
                     // Check if not expired
                     if (delegation.expiresAt == 0 || delegation.expiresAt > block.timestamp) {
@@ -324,10 +324,10 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         return votingPower;
     }
 
-    /// @notice Get all registered delegators
-    /// @return Array of delegator addresses
-    function getAllDelegators() external view returns (address[] memory) {
-        return _delegatorList;
+    /// @notice Get all registered delegates
+    /// @return Array of delegate addresses
+    function getAllDelegates() external view returns (address[] memory) {
+        return _delegateList;
     }
 
     /// @notice Get total vTON delegated by an owner
@@ -361,9 +361,9 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
                           INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Update voting power checkpoint for a delegator
-    function _updateVotingPowerCheckpoint(address delegator) internal {
-        uint208 newPower = uint208(_totalDelegated[delegator]);
-        _votingPowerCheckpoints[delegator].push(uint48(block.number), newPower);
+    /// @dev Update voting power checkpoint for a delegate
+    function _updateVotingPowerCheckpoint(address delegateAddr) internal {
+        uint208 newPower = uint208(_totalDelegated[delegateAddr]);
+        _votingPowerCheckpoints[delegateAddr].push(uint48(block.number), newPower);
     }
 }

@@ -1,6 +1,6 @@
 export { DashboardMetrics } from "./DashboardMetrics";
 export { ActiveProposals } from "./ActiveProposals";
-export { TopDelegators } from "./TopDelegators";
+export { TopDelegates } from "./TopDelegates";
 export { DAOParameters } from "./DAOParameters";
 export { MyStatus } from "./MyStatus";
 export { SecurityCouncilStatus } from "./SecurityCouncilStatus";

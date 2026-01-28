@@ -28,7 +28,7 @@ contract DAOGovernorTest is Test {
     DAOGovernor public governor;
 
     address public owner;
-    address public delegator1;
+    address public delegate1;
     address public user1;
     address public user2;
 
@@ -37,7 +37,7 @@ contract DAOGovernorTest is Test {
 
     function setUp() public {
         owner = makeAddr("owner");
-        delegator1 = makeAddr("delegator1");
+        delegate1 = makeAddr("delegate1");
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
 
@@ -95,9 +95,9 @@ contract DAOGovernorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_CreateProposal() public {
-        // Register as delegator (required to interact with governance)
-        vm.prank(delegator1);
-        registry.registerDelegator("Delegator1", "Philosophy", "Interests");
+        // Register as delegate (required to interact with governance)
+        vm.prank(delegate1);
+        registry.registerDelegate("Delegate1", "Philosophy", "Interests");
 
         address[] memory targets = new address[](1);
         targets[0] = address(governor);
@@ -146,12 +146,12 @@ contract DAOGovernorTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_CastVote() public {
-        // Setup: Register delegator and delegate
-        vm.prank(delegator1);
-        registry.registerDelegator("Delegator1", "Philosophy", "Interests");
+        // Setup: Register delegate and delegate vTON
+        vm.prank(delegate1);
+        registry.registerDelegate("Delegate1", "Philosophy", "Interests");
 
         vm.prank(user1);
-        registry.delegate(delegator1, 1000 ether);
+        registry.delegate(delegate1, 1000 ether);
 
         // Wait for delegation period
         vm.warp(block.timestamp + 8 days);
@@ -169,17 +169,17 @@ contract DAOGovernorTest is Test {
         // Move to voting period
         vm.roll(block.number + governor.votingDelay() + 1);
 
-        // Cast vote as delegator
-        vm.prank(delegator1);
+        // Cast vote as delegate
+        vm.prank(delegate1);
         governor.castVote(proposalId, IDAOGovernor.VoteType.For);
 
-        assertTrue(governor.hasVoted(proposalId, delegator1));
+        assertTrue(governor.hasVoted(proposalId, delegate1));
 
         IDAOGovernor.Proposal memory proposal = governor.getProposal(proposalId);
         assertGt(proposal.forVotes, 0);
     }
 
-    function test_CastVoteRevertsIfNotDelegator() public {
+    function test_CastVoteRevertsIfNotDelegate() public {
         // Create proposal
         address[] memory targets = new address[](1);
         targets[0] = address(governor);
@@ -193,18 +193,18 @@ contract DAOGovernorTest is Test {
         // Move to voting period
         vm.roll(block.number + governor.votingDelay() + 1);
 
-        // Try to vote as non-delegator
+        // Try to vote as non-delegate
         vm.prank(user1);
-        vm.expectRevert(DAOGovernor.NotDelegator.selector);
+        vm.expectRevert(DAOGovernor.NotDelegate.selector);
         governor.castVote(proposalId, IDAOGovernor.VoteType.For);
     }
 
     function test_CastVoteWithReason() public {
-        vm.prank(delegator1);
-        registry.registerDelegator("Delegator1", "Philosophy", "Interests");
+        vm.prank(delegate1);
+        registry.registerDelegate("Delegate1", "Philosophy", "Interests");
 
         vm.prank(user1);
-        registry.delegate(delegator1, 1000 ether);
+        registry.delegate(delegate1, 1000 ether);
 
         vm.warp(block.timestamp + 8 days);
 
@@ -219,10 +219,10 @@ contract DAOGovernorTest is Test {
 
         vm.roll(block.number + governor.votingDelay() + 1);
 
-        vm.prank(delegator1);
+        vm.prank(delegate1);
         governor.castVoteWithReason(proposalId, IDAOGovernor.VoteType.For, "I support this");
 
-        assertTrue(governor.hasVoted(proposalId, delegator1));
+        assertTrue(governor.hasVoted(proposalId, delegate1));
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -3,7 +3,7 @@
 import { StatCard } from "@/components/ui/stat-card";
 import { formatVTON, formatNumber, formatPercentage18 } from "@/lib/utils";
 import { useTotalSupply, useEmissionRatio } from "@/hooks/contracts/useVTON";
-import { useAllDelegators } from "@/hooks/contracts/useDelegateRegistry";
+import { useAllDelegates } from "@/hooks/contracts/useDelegateRegistry";
 import { useProposalCount } from "@/hooks/contracts/useDAOGovernor";
 
 /**
@@ -13,12 +13,12 @@ import { useProposalCount } from "@/hooks/contracts/useDAOGovernor";
 export function DashboardMetrics() {
   const { data: totalSupply, isDeployed } = useTotalSupply();
   const { data: emissionRatio } = useEmissionRatio();
-  const { data: delegators } = useAllDelegators();
+  const { data: delegates } = useAllDelegates();
   const { data: proposalCount } = useProposalCount();
 
   // Calculate total delegated (mock for now since we'd need to aggregate)
   const totalDelegated = BigInt(0);
-  const delegatorCount = delegators?.length ?? 0;
+  const delegateCount = delegates?.length ?? 0;
 
   // Participation rate (mock calculation)
   const participationRate = 0;
@@ -36,9 +36,9 @@ export function DashboardMetrics() {
         description="vTON delegated to representatives"
       />
       <StatCard
-        label="Delegators"
-        value={formatNumber(delegatorCount)}
-        description="Unique delegating addresses"
+        label="Delegates"
+        value={formatNumber(delegateCount)}
+        description="Registered delegates"
       />
       <StatCard
         label="Proposals"

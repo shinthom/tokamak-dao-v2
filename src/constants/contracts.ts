@@ -10,25 +10,41 @@ import type { ContractAddresses } from "@/types/governance";
 // Placeholder zero address
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
+// Deployment blocks by chain ID (for event log queries)
+export const DEPLOYMENT_BLOCKS: Record<number, bigint> = {
+  31337: BigInt(0), // Localhost
+  11155111: BigInt(10133156), // Sepolia (0x9a9ea4)
+  1: BigInt(0), // Mainnet (placeholder)
+};
+
+// Get deployment block for a specific chain
+export function getDeploymentBlock(chainId: number): bigint {
+  return DEPLOYMENT_BLOCKS[chainId] ?? BigInt(0);
+}
+
 // Contract addresses by chain ID
 export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
   // Localhost (Foundry/Anvil)
   31337: {
+    ton: ZERO_ADDRESS,
     vton: ZERO_ADDRESS,
     delegateRegistry: ZERO_ADDRESS,
     daoGovernor: ZERO_ADDRESS,
     securityCouncil: ZERO_ADDRESS,
     timelock: ZERO_ADDRESS,
     faucet: ZERO_ADDRESS,
+    tonFaucet: ZERO_ADDRESS,
   },
   // Sepolia Testnet
   11155111: {
-    vton: "0x4e5e1844506b96A48c9eF01c4244506F591eA5D2",
-    delegateRegistry: "0x472195554F448d0bb90EcfB4326e03d6aAf72053",
-    daoGovernor: "0xeBD668a520813d7CdD2628A2f70a112F4648864C",
-    securityCouncil: "0x18c6e285e837c6ae94808D5b96C03E3700cEE2D8",
-    timelock: "0x0D82f0C60eA0577b5767FA2464aF7f1f58531FB3",
-    faucet: "0xf879a6C57607CD184230eeAd1A55162505913a21"
+    ton: "0x78E58A0AD5fdA306fAaC3Ec931D98fAc36dE4053",
+    vton: "0xb4109a3fFa3b0e3f6a98069Da2177Af0B8713d08",
+    delegateRegistry: "0xbe639502eCD865eB3C16ecF15F0df5F2218e6d8d",
+    daoGovernor: "0x955A34Af7cCd21C4B3374157234565E5DCc45eB9",
+    securityCouncil: "0x5bf0774f26EC18EdFD4FdCeCb387a881a125Fa24",
+    timelock: "0xC170A0D08966d76fEC9F8aA7533C7a916629EC80",
+    faucet: "0x3836552CfbCFB9814544a674eA8eCf1CF566f9dE",
+    tonFaucet: "0xD1cED32525C6A26064afD4f85130807D8Ddb8608",
   },
   // Ethereum Mainnet
   1: {
@@ -160,7 +176,7 @@ export const VTON_ABI = [
 export const DELEGATE_REGISTRY_ABI = [
   // Read functions
   {
-    name: "getAllDelegators",
+    name: "getAllDelegates",
     type: "function",
     stateMutability: "view",
     inputs: [],
@@ -170,17 +186,28 @@ export const DELEGATE_REGISTRY_ABI = [
     name: "getTotalDelegated",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "delegatee", type: "address" }],
+    inputs: [{ name: "delegate", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
   {
     name: "getDelegation",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "delegator", type: "address" }],
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "delegate", type: "address" },
+    ],
     outputs: [
-      { name: "delegatee", type: "address" },
-      { name: "amount", type: "uint256" },
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "delegate", type: "address" },
+          { name: "amount", type: "uint256" },
+          { name: "delegatedAt", type: "uint256" },
+          { name: "expiresAt", type: "uint256" },
+        ],
+      },
     ],
   },
   {
@@ -191,22 +218,29 @@ export const DELEGATE_REGISTRY_ABI = [
     outputs: [{ name: "", type: "uint256" }],
   },
   {
-    name: "getDelegatorInfo",
+    name: "getDelegateInfo",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "delegator", type: "address" }],
+    inputs: [{ name: "delegate", type: "address" }],
     outputs: [
-      { name: "profile", type: "string" },
-      { name: "philosophy", type: "string" },
-      { name: "interests", type: "string[]" },
-      { name: "isRegistered", type: "bool" },
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "profile", type: "string" },
+          { name: "votingPhilosophy", type: "string" },
+          { name: "interests", type: "string" },
+          { name: "registeredAt", type: "uint256" },
+          { name: "isActive", type: "bool" },
+        ],
+      },
     ],
   },
   {
-    name: "isRegisteredDelegator",
+    name: "isRegisteredDelegate",
     type: "function",
     stateMutability: "view",
-    inputs: [{ name: "delegator", type: "address" }],
+    inputs: [{ name: "account", type: "address" }],
     outputs: [{ name: "", type: "bool" }],
   },
   {
@@ -214,7 +248,7 @@ export const DELEGATE_REGISTRY_ABI = [
     type: "function",
     stateMutability: "view",
     inputs: [
-      { name: "delegator", type: "address" },
+      { name: "delegate", type: "address" },
       { name: "blockNumber", type: "uint256" },
       { name: "snapshotBlock", type: "uint256" },
     ],
@@ -226,7 +260,7 @@ export const DELEGATE_REGISTRY_ABI = [
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "delegatee", type: "address" },
+      { name: "delegate", type: "address" },
       { name: "amount", type: "uint256" },
     ],
     outputs: [],
@@ -236,7 +270,7 @@ export const DELEGATE_REGISTRY_ABI = [
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "delegatee", type: "address" },
+      { name: "delegate", type: "address" },
       { name: "amount", type: "uint256" },
     ],
     outputs: [],
@@ -246,31 +280,31 @@ export const DELEGATE_REGISTRY_ABI = [
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "fromDelegator", type: "address" },
-      { name: "toDelegator", type: "address" },
+      { name: "fromDelegate", type: "address" },
+      { name: "toDelegate", type: "address" },
       { name: "amount", type: "uint256" },
     ],
     outputs: [],
   },
   {
-    name: "registerDelegator",
+    name: "registerDelegate",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
       { name: "profile", type: "string" },
-      { name: "philosophy", type: "string" },
+      { name: "votingPhilosophy", type: "string" },
       { name: "interests", type: "string" },
     ],
     outputs: [],
   },
   // Events
   {
-    name: "DelegatorRegistered",
+    name: "DelegateRegistered",
     type: "event",
     inputs: [
-      { name: "delegator", type: "address", indexed: true },
+      { name: "delegate", type: "address", indexed: true },
       { name: "profile", type: "string", indexed: false },
-      { name: "philosophy", type: "string", indexed: false },
+      { name: "votingPhilosophy", type: "string", indexed: false },
       { name: "interests", type: "string", indexed: false },
     ],
   },
@@ -279,7 +313,7 @@ export const DELEGATE_REGISTRY_ABI = [
     type: "event",
     inputs: [
       { name: "owner", type: "address", indexed: true },
-      { name: "delegator", type: "address", indexed: true },
+      { name: "delegate", type: "address", indexed: true },
       { name: "amount", type: "uint256", indexed: false },
       { name: "expiresAt", type: "uint256", indexed: false },
     ],
@@ -289,7 +323,7 @@ export const DELEGATE_REGISTRY_ABI = [
     type: "event",
     inputs: [
       { name: "owner", type: "address", indexed: true },
-      { name: "delegator", type: "address", indexed: true },
+      { name: "delegate", type: "address", indexed: true },
       { name: "amount", type: "uint256", indexed: false },
     ],
   },
@@ -305,17 +339,38 @@ export const DAO_GOVERNOR_ABI = [
     outputs: [{ name: "", type: "uint256" }],
   },
   {
+    name: "getAllProposalIds",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256[]" }],
+  },
+  {
     name: "getProposal",
     type: "function",
     stateMutability: "view",
     inputs: [{ name: "proposalId", type: "uint256" }],
     outputs: [
-      { name: "proposer", type: "address" },
-      { name: "forVotes", type: "uint256" },
-      { name: "againstVotes", type: "uint256" },
-      { name: "abstainVotes", type: "uint256" },
-      { name: "startTime", type: "uint256" },
-      { name: "endTime", type: "uint256" },
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "id", type: "uint256" },
+          { name: "proposer", type: "address" },
+          { name: "targets", type: "address[]" },
+          { name: "values", type: "uint256[]" },
+          { name: "calldatas", type: "bytes[]" },
+          { name: "description", type: "string" },
+          { name: "snapshotBlock", type: "uint256" },
+          { name: "voteStart", type: "uint256" },
+          { name: "voteEnd", type: "uint256" },
+          { name: "forVotes", type: "uint256" },
+          { name: "againstVotes", type: "uint256" },
+          { name: "abstainVotes", type: "uint256" },
+          { name: "canceled", type: "bool" },
+          { name: "executed", type: "bool" },
+        ],
+      },
     ],
   },
   {
@@ -341,13 +396,6 @@ export const DAO_GOVERNOR_ABI = [
   },
   {
     name: "votingDelay",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "proposalThreshold",
     type: "function",
     stateMutability: "view",
     inputs: [],
@@ -444,13 +492,13 @@ export const DAO_GOVERNOR_ABI = [
     name: "ProposalCreated",
     type: "event",
     inputs: [
-      { name: "id", type: "uint256", indexed: false },
-      { name: "proposer", type: "address", indexed: false },
+      { name: "proposalId", type: "uint256", indexed: true },
+      { name: "proposer", type: "address", indexed: true },
       { name: "targets", type: "address[]", indexed: false },
       { name: "values", type: "uint256[]", indexed: false },
       { name: "calldatas", type: "bytes[]", indexed: false },
       { name: "description", type: "string", indexed: false },
-      { name: "snapshot", type: "uint256", indexed: false },
+      { name: "snapshotBlock", type: "uint256", indexed: false },
       { name: "voteStart", type: "uint256", indexed: false },
       { name: "voteEnd", type: "uint256", indexed: false },
     ],
@@ -460,7 +508,7 @@ export const DAO_GOVERNOR_ABI = [
     type: "event",
     inputs: [
       { name: "voter", type: "address", indexed: true },
-      { name: "proposalId", type: "uint256", indexed: false },
+      { name: "proposalId", type: "uint256", indexed: true },
       { name: "support", type: "uint8", indexed: false },
       { name: "weight", type: "uint256", indexed: false },
       { name: "reason", type: "string", indexed: false },
@@ -470,19 +518,19 @@ export const DAO_GOVERNOR_ABI = [
     name: "ProposalQueued",
     type: "event",
     inputs: [
-      { name: "proposalId", type: "uint256", indexed: false },
+      { name: "proposalId", type: "uint256", indexed: true },
       { name: "eta", type: "uint256", indexed: false },
     ],
   },
   {
     name: "ProposalExecuted",
     type: "event",
-    inputs: [{ name: "proposalId", type: "uint256", indexed: false }],
+    inputs: [{ name: "proposalId", type: "uint256", indexed: true }],
   },
   {
     name: "ProposalCanceled",
     type: "event",
-    inputs: [{ name: "proposalId", type: "uint256", indexed: false }],
+    inputs: [{ name: "proposalId", type: "uint256", indexed: true }],
   },
 ] as const;
 
@@ -792,5 +840,165 @@ export const VTON_FAUCET_ABI = [
     name: "PauseStatusUpdated",
     type: "event",
     inputs: [{ name: "paused", type: "bool", indexed: false }],
+  },
+] as const;
+
+export const TON_FAUCET_ABI = [
+  // Read functions
+  {
+    name: "ton",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    name: "claimAmount",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "totalClaimed",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "paused",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "canClaim",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "canClaimNow", type: "bool" }],
+  },
+  // Write functions
+  {
+    name: "claim",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  // Events
+  {
+    name: "Claimed",
+    type: "event",
+    inputs: [
+      { name: "user", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "timestamp", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    name: "ClaimAmountUpdated",
+    type: "event",
+    inputs: [
+      { name: "oldAmount", type: "uint256", indexed: false },
+      { name: "newAmount", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    name: "PauseStatusUpdated",
+    type: "event",
+    inputs: [{ name: "paused", type: "bool", indexed: false }],
+  },
+] as const;
+
+export const MOCK_TON_ABI = [
+  // Read functions
+  {
+    name: "name",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    name: "decimals",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+  {
+    name: "totalSupply",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  // Write functions
+  {
+    name: "mint",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "transfer",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  // Events
+  {
+    name: "Transfer",
+    type: "event",
+    inputs: [
+      { name: "from", type: "address", indexed: true },
+      { name: "to", type: "address", indexed: true },
+      { name: "value", type: "uint256", indexed: false },
+    ],
   },
 ] as const;

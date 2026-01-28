@@ -43,7 +43,7 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
     error ExecutionFailed();
     error ZeroAddress();
     error ArrayLengthMismatch();
-    error NotDelegator();
+    error NotDelegate();
     error InsufficientTON();
 
     /*//////////////////////////////////////////////////////////////
@@ -101,6 +101,9 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
 
     /// @notice Proposal counter
     uint256 private _proposalCount;
+
+    /// @notice Array of all proposal IDs
+    uint256[] private _proposalIds;
 
     /// @notice Mapping from proposal ID to Proposal
     mapping(uint256 => Proposal) private _proposals;
@@ -203,6 +206,7 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
             executed: false
         });
 
+        _proposalIds.push(proposalId);
         _proposalCount++;
 
         emit ProposalCreated(
@@ -357,6 +361,12 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
         return _proposalCount;
     }
 
+    /// @notice Get all proposal IDs
+    /// @return Array of all proposal IDs
+    function getAllProposalIds() external view returns (uint256[] memory) {
+        return _proposalIds;
+    }
+
     /// @notice Get proposal eta (timelock)
     /// @param proposalId The proposal ID
     /// @return The eta timestamp
@@ -414,9 +424,9 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
         if (block.number > proposal.voteEnd) revert VotingEnded();
         if (_hasVoted[proposalId][msg.sender]) revert AlreadyVoted();
 
-        // Only registered delegators can vote
-        if (!delegateRegistry.isRegisteredDelegator(msg.sender)) {
-            revert NotDelegator();
+        // Only registered delegates can vote
+        if (!delegateRegistry.isRegisteredDelegate(msg.sender)) {
+            revert NotDelegate();
         }
 
         // Get voting power (only delegations made 7+ days before snapshot)

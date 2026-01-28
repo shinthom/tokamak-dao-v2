@@ -61,7 +61,7 @@ const FaucetIcon = () => (
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
   { href: "/proposals", label: "Proposals", icon: <ProposalsIcon /> },
-  { href: "/delegates", label: "Delegators", icon: <DelegatesIcon /> },
+  { href: "/delegates", label: "Delegates", icon: <DelegatesIcon /> },
   { href: "/faucet", label: "Faucet", icon: <FaucetIcon /> },
 ];
 

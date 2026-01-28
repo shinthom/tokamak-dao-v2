@@ -5,11 +5,12 @@ import { Modal, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label, HelperText } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useRegisterDelegator } from "@/hooks/contracts/useDelegateRegistry";
+import { useRegisterDelegate } from "@/hooks/contracts/useDelegateRegistry";
 
-export interface DelegatorRegistrationModalProps {
+export interface DelegateRegistrationModalProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const PROFILE_MIN = 3;
@@ -21,12 +22,13 @@ const INTERESTS_MIN = 1;
 const INTERESTS_MAX = 10;
 
 /**
- * Modal for registering as a delegator
+ * Modal for registering as a delegate
  */
-export function DelegatorRegistrationModal({
+export function DelegateRegistrationModal({
   open,
   onClose,
-}: DelegatorRegistrationModalProps) {
+  onSuccess,
+}: DelegateRegistrationModalProps) {
   const [profile, setProfile] = React.useState("");
   const [philosophy, setPhilosophy] = React.useState("");
   const [interests, setInterests] = React.useState<string[]>([]);
@@ -38,13 +40,13 @@ export function DelegatorRegistrationModal({
   }>({});
 
   const {
-    registerDelegator,
+    registerDelegate,
     isPending,
     isConfirming,
     isConfirmed,
     error: txError,
     reset,
-  } = useRegisterDelegator();
+  } = useRegisterDelegate();
 
   // Reset state when modal opens/closes
   React.useEffect(() => {
@@ -61,12 +63,13 @@ export function DelegatorRegistrationModal({
   // Close modal on successful transaction
   React.useEffect(() => {
     if (isConfirmed) {
+      onSuccess?.();
       const timeout = setTimeout(() => {
         onClose();
       }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [isConfirmed, onClose]);
+  }, [isConfirmed, onClose, onSuccess]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -133,14 +136,14 @@ export function DelegatorRegistrationModal({
 
   const handleSubmit = () => {
     if (!validateForm()) return;
-    registerDelegator(profile, philosophy, interests);
+    registerDelegate(profile, philosophy, interests);
   };
 
   const getButtonText = () => {
     if (isConfirmed) return "Registration Successful!";
     if (isConfirming) return "Confirming...";
     if (isPending) return "Confirm in Wallet...";
-    return "Register as Delegator";
+    return "Register as Delegate";
   };
 
   const isDisabled = isPending || isConfirming || isConfirmed;
@@ -149,7 +152,7 @@ export function DelegatorRegistrationModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Register as Delegator"
+      title="Register as Delegate"
       description="Share your profile and voting philosophy to become a delegate"
       size="md"
     >
@@ -282,9 +285,9 @@ export function DelegatorRegistrationModal({
 
         {/* Success Message */}
         {isConfirmed && (
-          <div className="p-3 bg-[var(--color-success-50)] border border-[var(--color-success-200)] rounded-lg text-center">
-            <p className="text-sm text-[var(--color-success-700)] font-medium">
-              You are now registered as a delegator!
+          <div className="p-3 bg-[var(--status-success)]/10 border border-[var(--status-success)]/30 rounded-lg text-center">
+            <p className="text-sm text-[var(--status-success)] font-medium">
+              You are now registered as a delegate!
             </p>
           </div>
         )}
