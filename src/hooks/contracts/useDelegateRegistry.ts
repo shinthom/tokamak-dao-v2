@@ -12,7 +12,6 @@ import {
 const MOCK_DATA = {
   delegates: [] as `0x${string}`[],
   totalDelegated: BigInt(0),
-  delegationPeriodRequirement: BigInt(604800), // 7 days in seconds
   delegateInfo: {
     profile: "",
     votingPhilosophy: "",
@@ -103,33 +102,6 @@ export function useDelegation(ownerAddress?: `0x${string}`, delegateAddress?: `0
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
     refetch: result.refetch,
-    isDeployed,
-  };
-}
-
-/**
- * Hook to get delegation parameters
- */
-export function useDelegationParams() {
-  const chainId = useChainId();
-  const addresses = getContractAddresses(chainId);
-  const isDeployed = areContractsDeployed(chainId);
-
-  const periodResult = useReadContract({
-    address: addresses.delegateRegistry,
-    abi: DELEGATE_REGISTRY_ABI,
-    functionName: "delegationPeriodRequirement",
-    query: {
-      enabled: isDeployed,
-    },
-  });
-
-  return {
-    delegationPeriodRequirement: isDeployed
-      ? periodResult.data
-      : MOCK_DATA.delegationPeriodRequirement,
-    isLoading: isDeployed ? periodResult.isLoading : false,
-    isError: isDeployed ? periodResult.isError : false,
     isDeployed,
   };
 }

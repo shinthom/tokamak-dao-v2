@@ -261,13 +261,6 @@ contract DelegateRegistryTest is Test {
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function test_SetDelegationPeriodRequirement() public {
-        vm.prank(owner);
-        registry.setDelegationPeriodRequirement(14 days);
-
-        assertEq(registry.delegationPeriodRequirement(), 14 days);
-    }
-
     function test_SetAutoExpiryPeriod() public {
         vm.prank(owner);
         registry.setAutoExpiryPeriod(30 days);

@@ -14,7 +14,6 @@ import { IDelegateRegistry } from "../interfaces/IDelegateRegistry.sol";
 /// @dev Key features per vTON DAO Governance Model:
 ///      - Delegates must register with profile, voting philosophy, interests
 ///      - vTON holders MUST delegate to vote (cannot vote directly)
-///      - 7-day minimum delegation period for voting power
 ///      - Optional auto-expiry for delegations
 contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -34,21 +33,11 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     error DelegationExpired();
 
     /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Default delegation period requirement (7 days)
-    uint256 public constant DEFAULT_PERIOD = 7 days;
-
-    /*//////////////////////////////////////////////////////////////
                                  STATE
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The vTON token contract
     IERC20 public immutable vTON;
-
-    /// @notice Minimum delegation period for voting power (in seconds)
-    uint256 public override delegationPeriodRequirement;
 
     /// @notice Auto-expiry period for delegations (0 = no expiry)
     uint256 public override autoExpiryPeriod;
@@ -71,14 +60,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     /// @notice List of all registered delegate addresses
     address[] private _delegateList;
 
-    /// @notice Delegation timestamps for voting power calculation
-    /// @dev delegate => owner => delegatedAt timestamp
-    mapping(address => mapping(address => uint256)) private _delegationTimestamps;
-
-    /// @notice List of addresses that delegated to each delegate
-    /// @dev delegate => list of owners who delegated to them
-    mapping(address => address[]) private _delegatesToOwners;
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -90,7 +71,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         if (vTON_ == address(0) || initialOwner == address(0)) revert ZeroAddress();
 
         vTON = IERC20(vTON_);
-        delegationPeriodRequirement = DEFAULT_PERIOD;
         autoExpiryPeriod = 0; // No expiry by default
     }
 
@@ -177,13 +157,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         _totalDelegated[delegateAddr] += amount;
         _totalDelegatedBy[msg.sender] += amount;
 
-        // Record delegation timestamp for voting power calculation
-        // Only add to owners list if this is a new delegation
-        if (_delegationTimestamps[delegateAddr][msg.sender] == 0) {
-            _delegatesToOwners[delegateAddr].push(msg.sender);
-        }
-        _delegationTimestamps[delegateAddr][msg.sender] = block.timestamp;
-
         // Update voting power checkpoint
         _updateVotingPowerCheckpoint(delegateAddr);
 
@@ -202,7 +175,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         delegation.amount -= amount;
         if (delegation.amount == 0) {
             delete _delegations[msg.sender][delegateAddr];
-            delete _delegationTimestamps[delegateAddr][msg.sender];
         }
 
         // Update totals
@@ -237,7 +209,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
         fromDelegation.amount -= amount;
         if (fromDelegation.amount == 0) {
             delete _delegations[msg.sender][fromDelegate];
-            delete _delegationTimestamps[fromDelegate][msg.sender];
         }
         _totalDelegated[fromDelegate] -= amount;
 
@@ -250,9 +221,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
             toDelegation.expiresAt = block.timestamp + autoExpiryPeriod;
         }
         _totalDelegated[toDelegate] += amount;
-
-        // Record new delegation timestamp
-        _delegationTimestamps[toDelegate][msg.sender] = block.timestamp;
 
         // Update voting power checkpoints
         _updateVotingPowerCheckpoint(fromDelegate);
@@ -292,36 +260,12 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IDelegateRegistry
-    /// @dev Only counts delegations made 7+ days before the snapshot block
     function getVotingPower(
         address delegateAddr,
         uint256, /* blockNumber */
         uint256 /* snapshotBlock */
     ) external view override returns (uint256) {
-        // Calculate the cutoff timestamp (7 days before current time)
-        // Note: In production, you'd use block numbers or a timestamp oracle
-        uint256 cutoffTime = block.timestamp - delegationPeriodRequirement;
-
-        uint256 votingPower = 0;
-        address[] storage owners = _delegatesToOwners[delegateAddr];
-        uint256 len = owners.length;
-
-        for (uint256 i = 0; i < len; i++) {
-            address owner = owners[i];
-            uint256 delegatedAt = _delegationTimestamps[delegateAddr][owner];
-
-            if (delegatedAt > 0 && delegatedAt <= cutoffTime) {
-                DelegationInfo memory delegation = _delegations[owner][delegateAddr];
-                if (delegation.amount > 0) {
-                    // Check if not expired
-                    if (delegation.expiresAt == 0 || delegation.expiresAt > block.timestamp) {
-                        votingPower += delegation.amount;
-                    }
-                }
-            }
-        }
-
-        return votingPower;
+        return _totalDelegated[delegateAddr];
     }
 
     /// @notice Get all registered delegates
@@ -340,14 +284,6 @@ contract DelegateRegistry is IDelegateRegistry, Ownable, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                            ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IDelegateRegistry
-    function setDelegationPeriodRequirement(uint256 period) external override onlyOwner {
-        uint256 oldPeriod = delegationPeriodRequirement;
-        delegationPeriodRequirement = period;
-
-        emit DelegationPeriodUpdated(oldPeriod, period);
-    }
 
     /// @inheritdoc IDelegateRegistry
     function setAutoExpiryPeriod(uint256 period) external override onlyOwner {

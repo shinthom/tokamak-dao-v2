@@ -7,7 +7,6 @@ pragma solidity ^0.8.24;
 ///      Key features:
 ///      - Delegates must register with profile, voting philosophy, and interests
 ///      - vTON holders must delegate to vote (cannot vote directly)
-///      - 7-day minimum delegation period for voting power recognition
 interface IDelegateRegistry {
     /// @notice Delegate information structure
     struct DelegateInfo {
@@ -46,9 +45,6 @@ interface IDelegateRegistry {
 
     /// @notice Emitted when delegation is withdrawn
     event Undelegated(address indexed owner, address indexed delegate, uint256 amount);
-
-    /// @notice Emitted when delegation period requirement is updated
-    event DelegationPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
 
     /// @notice Emitted when auto-expiry period is updated
     event AutoExpiryUpdated(uint256 oldExpiry, uint256 newExpiry);
@@ -120,20 +116,12 @@ interface IDelegateRegistry {
     /// @param delegate The delegate address
     /// @param blockNumber The block to check
     /// @param snapshotBlock The proposal snapshot block
-    /// @return Voting power (only includes delegations made 7+ days before snapshot)
+    /// @return Voting power
     function getVotingPower(
         address delegate,
         uint256 blockNumber,
         uint256 snapshotBlock
     ) external view returns (uint256);
-
-    /// @notice Get the minimum delegation period for voting power
-    /// @return Period in seconds
-    function delegationPeriodRequirement() external view returns (uint256);
-
-    /// @notice Set the delegation period requirement
-    /// @param period New period in seconds
-    function setDelegationPeriodRequirement(uint256 period) external;
 
     /// @notice Get the auto-expiry period (0 = no expiry)
     /// @return Period in seconds

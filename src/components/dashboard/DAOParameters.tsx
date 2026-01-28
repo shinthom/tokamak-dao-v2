@@ -3,7 +3,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatBasisPoints, formatDuration, formatVTON } from "@/lib/utils";
 import { useGovernanceParams } from "@/hooks/contracts/useDAOGovernor";
-import { useDelegationParams } from "@/hooks/contracts/useDelegateRegistry";
 
 /**
  * DAO Parameters Section
@@ -14,12 +13,9 @@ export function DAOParameters() {
     quorum,
     votingPeriod,
     votingDelay,
-    proposalThreshold,
     proposalCreationCost,
     isDeployed,
   } = useGovernanceParams();
-
-  const { delegationPeriodRequirement } = useDelegationParams();
 
   const parameters = [
     {
@@ -38,19 +34,9 @@ export function DAOParameters() {
       description: "Delay before voting starts",
     },
     {
-      label: "Proposal Threshold",
-      value: `${formatVTON(proposalThreshold ?? BigInt(0), { compact: true })} vTON`,
-      description: "Minimum vTON to create proposal",
-    },
-    {
       label: "Creation Cost",
       value: `${formatVTON(proposalCreationCost ?? BigInt(0), { compact: true })} TON`,
       description: "Cost to create proposal",
-    },
-    {
-      label: "Delegation Period",
-      value: formatDuration(delegationPeriodRequirement ?? BigInt(0)),
-      description: "Min delegation duration",
     },
   ];
 

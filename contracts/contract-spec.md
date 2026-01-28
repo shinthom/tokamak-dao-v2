@@ -55,13 +55,11 @@ event MinterUpdated(address indexed minter, bool allowed);
 **역할**: 위임자 등록 및 vTON 위임 관리
 
 **핵심 규칙**:
-- 최소 위임 기간: 7일 (투표권 반영까지)
 - vTON 홀더는 직접 투표 불가, 반드시 위임 필요
 
 **주요 상태**:
 | 변수 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `delegationPeriodRequirement` | `uint256` | `7 days` | 최소 위임 기간 |
 | `autoExpiryPeriod` | `uint256` | `0` | 자동 만료 기간 (0 = 만료 없음) |
 
 **주요 함수**:

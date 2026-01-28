@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { parseEther, formatEther } from "viem";
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label, HelperText } from "@/components/ui/input";
 import { AddressAvatar } from "@/components/ui/avatar";
 import { formatAddress, formatVTON } from "@/lib/utils";
-import { useVTONBalance } from "@/hooks/contracts/useVTON";
+import { useVTONBalance, useVTONAllowance, useVTONApprove } from "@/hooks/contracts/useVTON";
 import { useDelegate, useUndelegate } from "@/hooks/contracts/useDelegateRegistry";
+import { getContractAddresses } from "@/constants/contracts";
 
 export interface DelegationModalProps {
   open: boolean;
@@ -34,10 +35,26 @@ export function DelegationModal({
   onSuccess,
 }: DelegationModalProps) {
   const { address } = useAccount();
+  const chainId = useChainId();
+  const addresses = getContractAddresses(chainId);
   const { data: vtonBalance } = useVTONBalance(address);
+  const { data: allowance, refetch: refetchAllowance } = useVTONAllowance(
+    address,
+    addresses.delegateRegistry
+  );
 
   const [amount, setAmount] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [step, setStep] = React.useState<"input" | "approve" | "delegate">("input");
+
+  const {
+    approve,
+    isPending: isApprovePending,
+    isConfirming: isApproveConfirming,
+    isConfirmed: isApproveConfirmed,
+    error: approveError,
+    reset: resetApprove,
+  } = useVTONApprove();
 
   const {
     delegate,
@@ -57,10 +74,25 @@ export function DelegationModal({
     reset: resetUndelegate,
   } = useUndelegate();
 
-  const isPending = mode === "delegate" ? isDelegatePending : isUndelegatePending;
-  const isConfirming = mode === "delegate" ? isDelegateConfirming : isUndelegateConfirming;
+  const isPending =
+    mode === "delegate"
+      ? step === "approve"
+        ? isApprovePending
+        : isDelegatePending
+      : isUndelegatePending;
+  const isConfirming =
+    mode === "delegate"
+      ? step === "approve"
+        ? isApproveConfirming
+        : isDelegateConfirming
+      : isUndelegateConfirming;
   const isConfirmed = mode === "delegate" ? isDelegateConfirmed : isUndelegateConfirmed;
-  const txError = mode === "delegate" ? delegateError : undelegateError;
+  const txError =
+    mode === "delegate"
+      ? step === "approve"
+        ? approveError
+        : delegateError
+      : undelegateError;
 
   const maxAmount =
     mode === "delegate"
@@ -74,10 +106,23 @@ export function DelegationModal({
     if (open) {
       setAmount("");
       setError(null);
+      setStep("input");
+      resetApprove();
       resetDelegate();
       resetUndelegate();
     }
-  }, [open, resetDelegate, resetUndelegate]);
+  }, [open, resetApprove, resetDelegate, resetUndelegate]);
+
+  // After approve is confirmed, proceed to delegate
+  React.useEffect(() => {
+    if (isApproveConfirmed && step === "approve" && amount) {
+      refetchAllowance();
+      setStep("delegate");
+      resetApprove();
+      const parsedAmount = parseEther(amount);
+      delegate(delegatee, parsedAmount);
+    }
+  }, [isApproveConfirmed, step, amount, refetchAllowance, resetApprove, delegate, delegatee]);
 
   // Close modal on successful transaction
   React.useEffect(() => {
@@ -124,7 +169,16 @@ export function DelegationModal({
     try {
       const parsedAmount = parseEther(amount);
       if (mode === "delegate") {
-        delegate(delegatee, parsedAmount);
+        const currentAllowance = allowance ?? BigInt(0);
+        if (currentAllowance < parsedAmount) {
+          // Need to approve first
+          setStep("approve");
+          approve(addresses.delegateRegistry, parsedAmount);
+        } else {
+          // Already approved, delegate directly
+          setStep("delegate");
+          delegate(delegatee, parsedAmount);
+        }
       } else {
         undelegate(delegatee, parsedAmount);
       }
@@ -135,12 +189,40 @@ export function DelegationModal({
 
   const getButtonText = () => {
     if (isConfirmed) return "Success!";
+    if (mode === "delegate") {
+      if (step === "approve") {
+        if (isApproveConfirming) return "Confirming Approval...";
+        if (isApprovePending) return "Approve in Wallet...";
+      }
+      if (step === "delegate") {
+        if (isDelegateConfirming) return "Confirming Delegation...";
+        if (isDelegatePending) return "Delegate in Wallet...";
+      }
+      // Check if approval is needed
+      try {
+        const parsedAmount = amount ? parseEther(amount) : BigInt(0);
+        const currentAllowance = allowance ?? BigInt(0);
+        if (parsedAmount > 0 && currentAllowance < parsedAmount) {
+          return "Approve & Delegate";
+        }
+      } catch {
+        // Invalid amount, just show Delegate
+      }
+      return "Delegate";
+    }
     if (isConfirming) return "Confirming...";
     if (isPending) return "Confirm in Wallet...";
-    return mode === "delegate" ? "Delegate" : "Undelegate";
+    return "Undelegate";
   };
 
-  const isDisabled = !amount || !!error || isPending || isConfirming || isConfirmed;
+  const isProcessing =
+    isApprovePending ||
+    isApproveConfirming ||
+    isDelegatePending ||
+    isDelegateConfirming ||
+    isUndelegatePending ||
+    isUndelegateConfirming;
+  const isDisabled = !amount || !!error || isProcessing || isConfirmed;
 
   return (
     <Modal
@@ -206,21 +288,64 @@ export function DelegationModal({
         </div>
 
         {/* Info */}
-        {mode === "delegate" && (
-          <div className="p-3 bg-[var(--bg-tertiary)] rounded-lg text-xs text-[var(--text-secondary)] space-y-1">
-            <p>
-              Minimum delegation period: <strong>7 days</strong>
-            </p>
+        {mode === "delegate" && step === "input" && (
+          <div className="p-3 bg-[var(--bg-tertiary)] rounded-lg text-xs text-[var(--text-secondary)]">
             <p>
               Your voting power will be transferred to the delegatee
             </p>
           </div>
         )}
 
+        {/* Progress Steps */}
+        {mode === "delegate" && (step === "approve" || step === "delegate") && (
+          <div className="p-3 bg-[var(--bg-tertiary)] rounded-lg text-xs space-y-2">
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${
+                  step === "approve"
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "bg-[var(--color-success-500)] text-white"
+                }`}
+              >
+                {step === "approve" ? "1" : "\u2713"}
+              </div>
+              <span
+                className={
+                  step === "approve"
+                    ? "text-[var(--text-primary)] font-medium"
+                    : "text-[var(--text-tertiary)]"
+                }
+              >
+                Approve vTON spending
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${
+                  step === "delegate"
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "bg-[var(--border-secondary)] text-[var(--text-tertiary)]"
+                }`}
+              >
+                2
+              </div>
+              <span
+                className={
+                  step === "delegate"
+                    ? "text-[var(--text-primary)] font-medium"
+                    : "text-[var(--text-tertiary)]"
+                }
+              >
+                Delegate to {displayName}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Success Message */}
         {isConfirmed && (
-          <div className="p-3 bg-[var(--color-success-50)] border border-[var(--color-success-200)] rounded-lg text-center">
-            <p className="text-sm text-[var(--color-success-700)] font-medium">
+          <div className="p-3 bg-[var(--status-success-bg)] border border-[var(--status-success-border)] rounded-lg text-center">
+            <p className="text-sm text-[var(--status-success-fg)] font-medium">
               {mode === "delegate"
                 ? "Delegation successful!"
                 : "Undelegation successful!"}
@@ -230,14 +355,14 @@ export function DelegationModal({
       </ModalBody>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose} disabled={isPending || isConfirming}>
+        <Button variant="secondary" onClick={onClose} disabled={isProcessing}>
           Cancel
         </Button>
         <Button
           variant={mode === "delegate" ? "primary" : "destructive"}
           onClick={handleSubmit}
           disabled={isDisabled}
-          loading={isPending || isConfirming}
+          loading={isProcessing}
         >
           {getButtonText()}
         </Button>

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { AddressAvatar } from "@/components/ui/avatar";
 import { formatAddress, formatVTON } from "@/lib/utils";
 import { useVTONBalance } from "@/hooks/contracts/useVTON";
-import { useDelegationParams } from "@/hooks/contracts/useDelegateRegistry";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { DelegationModal } from "./DelegationModal";
 
@@ -22,7 +21,6 @@ export function MyDelegation() {
   const [modalMode, setModalMode] = React.useState<"delegate" | "undelegate">("delegate");
 
   const { data: vtonBalance, isDeployed, refetch: refetchVTONBalance } = useVTONBalance(address);
-  const { delegationPeriodRequirement } = useDelegationParams();
 
   const handleDelegationSuccess = React.useCallback(() => {
     refetchVTONBalance();
@@ -101,18 +99,6 @@ export function MyDelegation() {
             <p>
               vTON holders cannot vote directly. Select a delegate from the list below
               to delegate your vTON and participate in governance.
-            </p>
-          </div>
-
-          {/* Info */}
-          <div className="text-xs text-[var(--text-tertiary)]">
-            <p>
-              Minimum delegation period:{" "}
-              <span className="font-medium">
-                {delegationPeriodRequirement
-                  ? `${Number(delegationPeriodRequirement) / 86400} days`
-                  : "7 days"}
-              </span>
             </p>
           </div>
         </div>
