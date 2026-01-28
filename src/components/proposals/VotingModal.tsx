@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useWaitForTransactionReceipt } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/input";
 import { cn, formatVTON } from "@/lib/utils";
 import { VoteType } from "@/types/governance";
 import { useCastVote } from "@/hooks/contracts/useDAOGovernor";
-import { useVotingPower } from "@/hooks/contracts/useVTON";
+import { useTotalDelegated } from "@/hooks/contracts/useDelegateRegistry";
 
 export interface VotingModalProps {
   isOpen: boolean;
@@ -57,39 +57,39 @@ export function VotingModal({
 }: VotingModalProps) {
   const { address } = useAccount();
   const [selectedVote, setSelectedVote] = React.useState<VoteType | null>(null);
-  const [reason, setReason] = React.useState("");
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: votingPower } = useVotingPower(address);
-  const { castVote, castVoteWithReason, isPending, isSuccess } = useCastVote();
+  const { data: votingPower } = useTotalDelegated(address);
+  const { castVote, data: txHash, isPending } = useCastVote();
+
+  // Wait for transaction confirmation
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
 
   // Reset state when modal closes
   React.useEffect(() => {
     if (!isOpen) {
       setSelectedVote(null);
-      setReason("");
-      setIsSubmitting(false);
     }
   }, [isOpen]);
 
-  // Close modal on success
+  // Invalidate queries and close modal on transaction confirmed
   React.useEffect(() => {
-    if (isSuccess && isSubmitting) {
+    if (isConfirmed) {
+      // Invalidate all contract read queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["readContract"] });
+      queryClient.invalidateQueries({ queryKey: ["readContracts"] });
       onClose();
     }
-  }, [isSuccess, isSubmitting, onClose]);
+  }, [isConfirmed, onClose, queryClient]);
 
   const handleSubmit = async () => {
     if (selectedVote === null) return;
-
-    setIsSubmitting(true);
-
-    if (reason.trim()) {
-      castVoteWithReason(proposalId, selectedVote, reason);
-    } else {
-      castVote(proposalId, selectedVote);
-    }
+    castVote(proposalId, selectedVote);
   };
+
+  const isLoading = isPending || isConfirming;
 
   const formattedVotingPower = votingPower
     ? formatVTON(votingPower, { compact: true })
@@ -180,37 +180,18 @@ export function VotingModal({
           </div>
         </div>
 
-        {/* Reason (Optional) */}
-        <div className="space-y-2">
-          <label
-            htmlFor="vote-reason"
-            className="text-sm font-medium text-[var(--text-primary)]"
-          >
-            Reason (Optional)
-          </label>
-          <Textarea
-            id="vote-reason"
-            placeholder="Share why you're voting this way..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-          />
-          <p className="text-xs text-[var(--text-tertiary)]">
-            Your reason will be recorded on-chain and visible to others.
-          </p>
-        </div>
       </ModalBody>
 
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose} disabled={isPending}>
+        <Button variant="secondary" onClick={onClose} disabled={isLoading}>
           Cancel
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={selectedVote === null || !address}
-          loading={isPending}
+          disabled={selectedVote === null || !address || isLoading}
+          loading={isLoading}
         >
-          {isPending ? "Submitting..." : "Submit Vote"}
+          {isPending ? "Submitting..." : isConfirming ? "Confirming..." : "Submit Vote"}
         </Button>
       </ModalFooter>
     </Modal>
