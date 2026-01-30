@@ -57,6 +57,27 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
 
   const canVote = isConnected && proposal.status === "active" && !hasVoted && !isDemo;
 
+  // Remove title from description if it appears at the beginning
+  const descriptionWithoutTitle = React.useMemo(() => {
+    const lines = proposal.description.split('\n');
+    const firstLine = lines[0]?.trim();
+
+    // Check if first line is a heading that matches the title
+    if (firstLine) {
+      // Remove markdown heading prefix (# or ##)
+      const headingText = firstLine.replace(/^#{1,2}\s*/, '');
+      if (headingText === proposal.title) {
+        // Remove the first line and any following empty lines
+        let startIndex = 1;
+        while (startIndex < lines.length && lines[startIndex].trim() === '') {
+          startIndex++;
+        }
+        return lines.slice(startIndex).join('\n');
+      }
+    }
+    return proposal.description;
+  }, [proposal.description, proposal.title]);
+
   return (
     <div className={cn("space-y-6", className)}>
       {/* Back link */}
@@ -122,7 +143,7 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
           <Card>
             <CardContent className="py-4">
               <div className="proposal-prose max-w-none">
-                <ReactMarkdown>{proposal.description}</ReactMarkdown>
+                <ReactMarkdown>{descriptionWithoutTitle}</ReactMarkdown>
               </div>
             </CardContent>
           </Card>
@@ -205,7 +226,7 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
         <div className="space-y-6">
           {/* Timeline */}
           <Card>
-            <CardContent className="pt-6">
+            <CardContent>
               <ProposalTimeline
                 proposalStatus={proposal.status}
                 createdAt={proposal.createdAt}
