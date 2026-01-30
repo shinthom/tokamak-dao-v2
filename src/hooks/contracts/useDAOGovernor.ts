@@ -243,6 +243,7 @@ export function useProposal(proposalId: bigint) {
     isLoading: isDeployed ? result.isLoading : false,
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
+    refetch: result.refetch,
     isDeployed,
   };
 }

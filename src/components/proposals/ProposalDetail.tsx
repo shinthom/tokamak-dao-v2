@@ -35,9 +35,10 @@ export interface ProposalDetailData {
 export interface ProposalDetailProps {
   className?: string;
   proposal: ProposalDetailData;
+  onVoteSuccess?: () => void;
 }
 
-export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
+export function ProposalDetail({ className, proposal, onVoteSuccess }: ProposalDetailProps) {
   const { address, isConnected } = useAccount();
   const [isVotingModalOpen, setIsVotingModalOpen] = React.useState(false);
 
@@ -266,6 +267,7 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
           onClose={() => setIsVotingModalOpen(false)}
           proposalId={proposalIdBigInt}
           proposalTitle={proposal.title}
+          onVoteSuccess={onVoteSuccess}
         />
       )}
     </div>
