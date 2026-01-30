@@ -88,32 +88,32 @@ export function DashboardMetrics() {
       <StatCard
         label="Total vTON Supply"
         value={formatVTON(totalSupply ?? BigInt(0), { compact: true })}
-        description={isDeployed ? "Total minted vTON" : "Contract not deployed"}
+        tooltip="Total amount of vTON minted by staking TON. vTON is used as voting power in DAO governance."
       />
       <StatCard
         label="Total Delegated"
         value={formatVTON(totalDelegated, { compact: true })}
-        description="vTON delegated to representatives"
+        tooltip="Total vTON delegated to delegates. Delegation allows others to vote on your behalf."
       />
       <StatCard
         label="Delegates"
         value={formatNumber(delegateCount)}
-        description="Registered delegates"
+        tooltip="Number of registered delegates in the DAO. Delegates can vote on proposals using delegated voting power."
       />
       <StatCard
         label="Proposals"
         value={formatNumber(Number(proposalCount ?? 0))}
-        description="Total proposals created"
+        tooltip="Total number of governance proposals created."
       />
       <StatCard
         label="Emission Ratio"
         value={formatPercentage18(emissionRatio ?? BigInt(0))}
-        description="vTON emission rate"
+        tooltip="The ratio of vTON issued per TON staked. Determines how much vTON you receive when staking."
       />
       <StatCard
         label="Participation"
         value={`${participationRate}%`}
-        description="Average voting participation"
+        tooltip="Average voting participation rate. Calculated as the average of (votes cast / total delegated) across all proposals."
       />
     </div>
   );
