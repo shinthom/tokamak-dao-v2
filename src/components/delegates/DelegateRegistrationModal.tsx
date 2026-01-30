@@ -81,7 +81,7 @@ export function DelegateRegistrationModal({
     >
       <ModalBody className="space-y-4">
         {/* Name Input */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label htmlFor="name" required>
             Name
           </Label>
@@ -95,7 +95,7 @@ export function DelegateRegistrationModal({
         </div>
 
         {/* About Me Input */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label htmlFor="aboutMe" required>
             About me
           </Label>
@@ -110,7 +110,7 @@ export function DelegateRegistrationModal({
         </div>
 
         {/* Why I want to be a delegate Input */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label htmlFor="whyDelegate" required>
             Why I want to be a delegate
           </Label>
@@ -125,7 +125,7 @@ export function DelegateRegistrationModal({
         </div>
 
         {/* Address or ENS Input */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label htmlFor="addressOrEns" required>
             Address or ENS
           </Label>

@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useReadContract, useReadContracts, useWriteContract, useChainId, useBlockNumber } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -589,6 +590,28 @@ export function useExecuteProposal() {
     isError,
     error,
     isSuccess,
+    isDeployed,
+  };
+}
+
+/**
+ * Hook to get cancelable proposals (pending, active, succeeded, queued)
+ * Used by Security Council for emergency cancellation
+ */
+export function useCancelableProposals() {
+  const { data: proposals, isLoading, refetch, isDeployed } = useProposals();
+
+  const cancelableStatuses: ProposalStatus[] = ["pending", "active", "succeeded", "queued"];
+
+  const cancelableProposals = React.useMemo(() => {
+    if (!proposals) return [];
+    return proposals.filter((p) => cancelableStatuses.includes(p.status));
+  }, [proposals]);
+
+  return {
+    data: cancelableProposals,
+    isLoading,
+    refetch,
     isDeployed,
   };
 }

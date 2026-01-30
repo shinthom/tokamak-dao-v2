@@ -88,12 +88,12 @@ export function DashboardMetrics() {
       <StatCard
         label="Total vTON Supply"
         value={formatVTON(totalSupply ?? BigInt(0), { compact: true })}
-        tooltip="Total amount of vTON minted by staking TON. vTON is used as voting power in DAO governance."
+        tooltip="Total vTON in circulation. vTON is minted as seigniorage rewards and must be delegated to participate in governance."
       />
       <StatCard
         label="Total Delegated"
         value={formatVTON(totalDelegated, { compact: true })}
-        tooltip="Total vTON delegated to delegates. Delegation allows others to vote on your behalf."
+        tooltip="Total vTON delegated to registered delegates. vTON holders must delegate to participate in governance voting."
       />
       <StatCard
         label="Delegates"
@@ -108,7 +108,7 @@ export function DashboardMetrics() {
       <StatCard
         label="Emission Ratio"
         value={formatPercentage18(emissionRatio ?? BigInt(0))}
-        tooltip="The ratio of vTON issued per TON staked. Determines how much vTON you receive when staking."
+        tooltip="Percentage of vTON actually minted when issuing new tokens. At 80%, minting 100 vTON results in 80 vTON issued. Adjustable through DAO governance."
       />
       <StatCard
         label="Participation"
