@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useReadContract, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useReadContract, useReadContracts, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import {
   getContractAddresses,
   areContractsDeployed,
   DELEGATE_REGISTRY_ABI,
+  getDeploymentBlock,
 } from "@/constants/contracts";
 
 // Mock data for when contracts are not deployed
@@ -391,6 +392,93 @@ export function useRedelegate() {
     isConfirmed,
     error,
     reset,
+    isDeployed,
+  };
+}
+
+/**
+ * Hook to get all delegations made by an owner
+ * Queries all registered delegates and checks delegation for each
+ */
+export function useMyDelegations(ownerAddress?: `0x${string}`) {
+  const chainId = useChainId();
+  const addresses = getContractAddresses(chainId);
+  const isDeployed = areContractsDeployed(chainId);
+
+  // First get all registered delegates
+  const { data: allDelegates, isLoading: delegatesLoading } = useAllDelegates();
+
+  // Create contract calls for each delegate
+  const contracts = React.useMemo(() => {
+    if (!isDeployed || !ownerAddress || !allDelegates || allDelegates.length === 0) {
+      return [];
+    }
+    return allDelegates.map((delegate) => ({
+      address: addresses.delegateRegistry as `0x${string}`,
+      abi: DELEGATE_REGISTRY_ABI,
+      functionName: "getDelegation" as const,
+      args: [ownerAddress, delegate] as const,
+    }));
+  }, [isDeployed, ownerAddress, allDelegates, addresses.delegateRegistry]);
+
+  // Batch query all delegations
+  const { data: delegationResults, isLoading: delegationsLoading } = useReadContracts({
+    contracts,
+    query: {
+      enabled: contracts.length > 0,
+    },
+  });
+
+  // Process results to find active delegations
+  const delegations = React.useMemo(() => {
+    if (!allDelegates || !delegationResults) {
+      return [];
+    }
+
+    const activeDelegations: Array<{
+      delegatee: `0x${string}`;
+      amount: bigint;
+      delegatedAt: bigint;
+      expiresAt: bigint;
+    }> = [];
+
+    delegationResults.forEach((result, index) => {
+      if (result.status === "success" && result.result) {
+        const delegation = result.result as {
+          delegate: `0x${string}`;
+          amount: bigint;
+          delegatedAt: bigint;
+          expiresAt: bigint;
+        };
+        // Only include if there's an actual delegation amount
+        if (delegation.amount > BigInt(0)) {
+          activeDelegations.push({
+            delegatee: allDelegates[index],
+            amount: delegation.amount,
+            delegatedAt: delegation.delegatedAt,
+            expiresAt: delegation.expiresAt,
+          });
+        }
+      }
+    });
+
+    return activeDelegations;
+  }, [allDelegates, delegationResults]);
+
+  // Calculate totals
+  const totalDelegatedAmount = React.useMemo(() => {
+    return delegations.reduce((sum, d) => sum + d.amount, BigInt(0));
+  }, [delegations]);
+
+  // For single delegation display (most common case)
+  const primaryDelegation = delegations.length > 0 ? delegations[0] : null;
+
+  return {
+    delegations,
+    primaryDelegation,
+    totalDelegatedAmount,
+    delegationCount: delegations.length,
+    isLoading: delegatesLoading || delegationsLoading,
     isDeployed,
   };
 }

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatVTON, formatAddress } from "@/lib/utils";
 import { useVTONBalance, useVotingPower } from "@/hooks/contracts/useVTON";
-import { useDelegation, useTotalDelegated } from "@/hooks/contracts/useDelegateRegistry";
+import { useMyDelegations, useTotalDelegated } from "@/hooks/contracts/useDelegateRegistry";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 
 /**
@@ -17,7 +17,7 @@ export function MyStatus() {
 
   const { data: balance, isDeployed } = useVTONBalance(address);
   const { data: votingPower } = useVotingPower(address);
-  const { data: delegation } = useDelegation(address);
+  const { primaryDelegation, totalDelegatedAmount } = useMyDelegations(address);
   const { data: receivedDelegations } = useTotalDelegated(address);
 
   // Loading state (waiting for hydration and connection restore)
@@ -67,15 +67,9 @@ export function MyStatus() {
     );
   }
 
-  const delegatee = delegation && typeof delegation === 'object' && 'delegatee' in delegation
-    ? delegation.delegatee as `0x${string}` | undefined
-    : undefined;
-
-  const delegatedAmount = delegation && typeof delegation === 'object' && 'amount' in delegation
-    ? delegation.amount as bigint
-    : BigInt(0);
-
-  const hasDelegated = delegatee && delegatee !== "0x0000000000000000000000000000000000000000";
+  const delegatee = primaryDelegation?.delegatee;
+  const delegatedAmount = totalDelegatedAmount;
+  const hasDelegated = !!primaryDelegation && delegatedAmount > BigInt(0);
 
   const stats = [
     {
@@ -92,7 +86,7 @@ export function MyStatus() {
     },
     {
       label: "Delegated To",
-      value: hasDelegated
+      value: hasDelegated && delegatee
         ? formatAddress(delegatee)
         : "Not delegated",
     },

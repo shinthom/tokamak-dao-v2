@@ -6,7 +6,7 @@ import { getContractAddresses, areContractsDeployed, VTON_ABI } from "@/constant
 // Mock data for when contracts are not deployed
 const MOCK_DATA = {
   totalSupply: BigInt(0),
-  emissionRatio: BigInt("800000000000000000"), // 80% emission ratio (1e18 = 100%)
+  emissionRatio: BigInt(0),
   balance: BigInt(0),
   votingPower: BigInt(0),
 };
