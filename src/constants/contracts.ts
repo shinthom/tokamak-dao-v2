@@ -37,14 +37,14 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
   },
   // Sepolia Testnet
   11155111: {
-    ton: "0x1f00f9B05E06130EE217edb97269E41F49851267",
-    vton: "0xaB2732129C9737F745F650312994677c19FA1Bef",
-    delegateRegistry: "0xBF65D7a647544355112CF99B4D3311F00BF77907",
-    daoGovernor: "0x86c027A0D11c65Edc7953748220589b538bda8Cc",
-    securityCouncil: "0x17a36B2E9cdddf880098E6Be8D282Ae06ea9946B",
-    timelock: "0x4df0101Ed65cD155dDA93339A902B6B9180B9Dab",
-    faucet: "0xCF1Abdff1F73d3864DF9640c47BeeCE8Af6b21c6",
-    tonFaucet: "0x1FeeB3F8231b8BfA63A1FbD625209C7aA422Ad2B",
+    ton: "0xfEad6D7Cd42302661Ec7a003701dB8aD76e0FD9f",
+    vton: "0x6D34A7b7cE7749A9c12dc534548dE2d53027D7c8",
+    delegateRegistry: "0x75DBAfD7AfA98BE0ede93EeFE291CA39e72da66F",
+    daoGovernor: "0xdE3CEC4ABF6b3805D05A2fEf9554845EE9F5c5d8",
+    securityCouncil: "0xEe3eCf875c3d8f6b6a769414f6f7132B0DCdb86d",
+    timelock: "0x23AdB90672ec867c596A6966Ca14A938AFa98630",
+    faucet: "0x961EcD6FD152Bf63877Df7e4c72e978b0f370eaB",
+    tonFaucet: "0xe1061186f28325FC94d023E3027bDF959e2d72E8",
   },
   // Ethereum Mainnet
   1: {
@@ -541,7 +541,17 @@ export const SECURITY_COUNCIL_ABI = [
     type: "function",
     stateMutability: "view",
     inputs: [],
-    outputs: [{ name: "", type: "address[]" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple[]",
+        components: [
+          { name: "account", type: "address" },
+          { name: "isFoundation", type: "bool" },
+          { name: "addedAt", type: "uint256" },
+        ],
+      },
+    ],
   },
   {
     name: "threshold",

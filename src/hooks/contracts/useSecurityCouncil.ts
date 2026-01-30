@@ -18,9 +18,18 @@ export enum ActionType {
   Custom = 4,
 }
 
+/**
+ * Member struct from SecurityCouncil contract
+ */
+export interface SecurityCouncilMember {
+  account: `0x${string}`;
+  isFoundation: boolean;
+  addedAt: bigint;
+}
+
 // Mock data for when contracts are not deployed
 const MOCK_DATA = {
-  members: [] as `0x${string}`[],
+  members: [] as SecurityCouncilMember[],
   threshold: BigInt(0),
   pendingActionsCount: BigInt(0),
 };

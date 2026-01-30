@@ -245,10 +245,12 @@ contract DeploySepoliaScript is Script {
         );
         console.log("DAOGovernor deployed at:", address(governor));
 
-        // 6. Deploy SecurityCouncil (deployer as all members for testing)
+        // 6. Deploy SecurityCouncil with real members
+        // Foundation member: deployer
+        // External members: deployer + 0x488f3660FCD32099F2A250633822a6fbF6Eb771B
         address[] memory extMembers = new address[](2);
         extMembers[0] = deployer;
-        extMembers[1] = deployer;
+        extMembers[1] = 0x488f3660FCD32099F2A250633822a6fbF6Eb771B;
 
         SecurityCouncil securityCouncil = new SecurityCouncil(
             deployer, extMembers, address(governor), address(timelock), address(vton)
