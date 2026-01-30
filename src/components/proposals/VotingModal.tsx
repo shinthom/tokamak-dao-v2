@@ -15,6 +15,7 @@ export interface VotingModalProps {
   onClose: () => void;
   proposalId: bigint;
   proposalTitle: string;
+  onVoteSuccess?: () => void;
 }
 
 interface VoteOption {
@@ -54,6 +55,7 @@ export function VotingModal({
   onClose,
   proposalId,
   proposalTitle,
+  onVoteSuccess,
 }: VotingModalProps) {
   const { address } = useAccount();
   const [selectedVote, setSelectedVote] = React.useState<VoteType | null>(null);
@@ -77,12 +79,18 @@ export function VotingModal({
   // Invalidate queries and close modal on transaction confirmed
   React.useEffect(() => {
     if (isConfirmed) {
-      // Invalidate all contract read queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["readContract"] });
-      queryClient.invalidateQueries({ queryKey: ["readContracts"] });
-      onClose();
+      // Add a small delay to allow RPC node to sync with the new state
+      const timer = setTimeout(async () => {
+        // Invalidate all queries to refresh data
+        await queryClient.invalidateQueries();
+        // Call success callback to trigger parent refetch
+        onVoteSuccess?.();
+        onClose();
+      }, 2000); // 2 second delay for RPC sync
+
+      return () => clearTimeout(timer);
     }
-  }, [isConfirmed, onClose, queryClient]);
+  }, [isConfirmed, onClose, onVoteSuccess, queryClient]);
 
   const handleSubmit = async () => {
     if (selectedVote === null) return;

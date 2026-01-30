@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { formatUnits } from "viem";
 import { ProposalCard } from "@/components/ui/proposal-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn, formatVTON } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useProposals } from "@/hooks/contracts/useDAOGovernor";
 import type { ProposalStatus } from "@/types/governance";
 
@@ -124,9 +125,9 @@ export function ProposalsList({ className }: ProposalsListProps) {
       title: p.title,
       status: p.status,
       date: p.date,
-      forVotes: Number(formatVTON(p.forVotes)),
-      againstVotes: Number(formatVTON(p.againstVotes)),
-      abstainVotes: Number(formatVTON(p.abstainVotes)),
+      forVotes: Number(formatUnits(p.forVotes, 18)),
+      againstVotes: Number(formatUnits(p.againstVotes, 18)),
+      abstainVotes: Number(formatUnits(p.abstainVotes, 18)),
       isDemo: false,
     }));
     // Real proposals first, then demo proposals

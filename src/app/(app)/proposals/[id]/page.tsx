@@ -1,13 +1,14 @@
 "use client";
 
+import * as React from "react";
 import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { useBlockNumber } from "wagmi";
+import { formatUnits } from "viem";
 import { ProposalDetail, type ProposalDetailData } from "@/components/proposals/ProposalDetail";
 import { useProposal, useProposalState } from "@/hooks/contracts/useDAOGovernor";
 import type { ProposalStatus } from "@/types/governance";
-import { formatVTON } from "@/lib/utils";
 
 // Average block time in seconds (Sepolia/Ethereum ~12s)
 const BLOCK_TIME_SECONDS = 12;
@@ -189,9 +190,14 @@ function blockToDate(blockNumber: bigint, currentBlock: bigint, currentTime: Dat
 // Component for real proposals (fetched from contract)
 function RealProposalDetail({ id }: { id: string }) {
   const proposalId = BigInt(id);
-  const { data: proposalData, isLoading: proposalLoading, isError: proposalError } = useProposal(proposalId);
+  const { data: proposalData, isLoading: proposalLoading, isError: proposalError, refetch: refetchProposal } = useProposal(proposalId);
   const { data: stateData, isLoading: stateLoading } = useProposalState(proposalId);
   const { data: currentBlock, isLoading: blockLoading } = useBlockNumber();
+
+  // Handle vote success - refetch proposal data
+  const handleVoteSuccess = React.useCallback(() => {
+    refetchProposal();
+  }, [refetchProposal]);
 
   const isLoading = proposalLoading || stateLoading || blockLoading;
 
@@ -261,9 +267,9 @@ function RealProposalDetail({ id }: { id: string }) {
     description: proposal.description,
     status,
     proposer: proposal.proposer,
-    forVotes: Number(formatVTON(proposal.forVotes)),
-    againstVotes: Number(formatVTON(proposal.againstVotes)),
-    abstainVotes: Number(formatVTON(proposal.abstainVotes)),
+    forVotes: Number(formatUnits(proposal.forVotes, 18)),
+    againstVotes: Number(formatUnits(proposal.againstVotes, 18)),
+    abstainVotes: Number(formatUnits(proposal.abstainVotes, 18)),
     totalVoters: 0, // Contract doesn't track unique voters
     createdAt: createdTime,
     votingStartsAt: voteStartTime,
@@ -271,7 +277,7 @@ function RealProposalDetail({ id }: { id: string }) {
     executedAt: proposal.executed ? new Date() : undefined,
   };
 
-  return <ProposalDetail proposal={proposalDetail} />;
+  return <ProposalDetail proposal={proposalDetail} onVoteSuccess={handleVoteSuccess} />;
 }
 
 export default function ProposalPage({ params }: ProposalPageProps) {

@@ -26,9 +26,10 @@ export enum ProposalState {
 }
 
 // Vote Type for casting votes
+// IMPORTANT: Must match contract enum order (Against=0, For=1, Abstain=2)
 export enum VoteType {
-  For = 0,
-  Against = 1,
+  Against = 0,
+  For = 1,
   Abstain = 2,
 }
 
