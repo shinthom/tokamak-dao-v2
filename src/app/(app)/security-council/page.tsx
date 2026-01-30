@@ -65,7 +65,7 @@ function SecurityCouncilContent() {
         <div className="lg:col-span-1">
           <CouncilMembersList
             members={members ?? []}
-            isLoading={isLoading}
+            isLoading={isLoading && (!members || members.length === 0)}
           />
         </div>
 
