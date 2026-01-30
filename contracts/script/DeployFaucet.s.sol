@@ -10,7 +10,7 @@ import { vTON } from "../src/token/vTON.sol";
 /// @dev Run with: forge script script/DeployFaucet.s.sol:DeployFaucetScript --rpc-url $RPC_URL_SEPOLIA --broadcast -vvv
 contract DeployFaucetScript is Script {
     // Existing vTON address on Sepolia
-    address constant VTON_ADDRESS = 0x6D34A7b7cE7749A9c12dc534548dE2d53027D7c8;
+    address constant VTON_ADDRESS = 0x33F00477a70F2e02b81eCc08F2b248a6bde6C8F5;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -43,7 +43,7 @@ contract DeployFaucetScript is Script {
 /// @dev Run with: forge script script/DeployFaucet.s.sol:DeployAndSetupFaucetScript --rpc-url $RPC_URL_SEPOLIA --broadcast -vvv
 contract DeployAndSetupFaucetScript is Script {
     // Existing vTON address on Sepolia
-    address constant VTON_ADDRESS = 0x6D34A7b7cE7749A9c12dc534548dE2d53027D7c8;
+    address constant VTON_ADDRESS = 0x33F00477a70F2e02b81eCc08F2b248a6bde6C8F5;
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
