@@ -361,6 +361,208 @@ a:not([class]):hover {
 }
 
 /* ============================================
+   Proposal Markdown Prose
+   ============================================ */
+
+.proposal-prose {
+  --prose-body: var(--text-secondary);
+  --prose-headings: var(--text-primary);
+  --prose-lead: var(--text-secondary);
+  --prose-links: var(--text-brand);
+  --prose-bold: var(--text-primary);
+  --prose-counters: var(--text-tertiary);
+  --prose-bullets: var(--color-primary-400);
+  --prose-hr: var(--border-secondary);
+  --prose-quotes: var(--text-primary);
+  --prose-quote-borders: var(--color-primary-300);
+  --prose-captions: var(--text-tertiary);
+  --prose-code: var(--text-primary);
+  --prose-pre-code: var(--text-secondary);
+  --prose-pre-bg: var(--bg-tertiary);
+  --prose-th-borders: var(--border-primary);
+  --prose-td-borders: var(--border-secondary);
+
+  color: var(--prose-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Headings */
+.proposal-prose h1,
+.proposal-prose h2,
+.proposal-prose h3,
+.proposal-prose h4 {
+  color: var(--prose-headings);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+  line-height: var(--line-height-tight);
+}
+
+.proposal-prose h1:first-child,
+.proposal-prose h2:first-child,
+.proposal-prose h3:first-child,
+.proposal-prose h4:first-child {
+  margin-top: 0;
+}
+
+.proposal-prose h2 {
+  font-size: var(--font-size-lg);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.proposal-prose h3 {
+  font-size: var(--font-size-base);
+}
+
+.proposal-prose h4 {
+  font-size: var(--font-size-sm);
+}
+
+/* Paragraphs */
+.proposal-prose p {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.proposal-prose p:first-child {
+  margin-top: 0;
+}
+
+.proposal-prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lists */
+.proposal-prose ul,
+.proposal-prose ol {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-6);
+}
+
+.proposal-prose ul {
+  list-style-type: disc;
+}
+
+.proposal-prose ol {
+  list-style-type: decimal;
+}
+
+.proposal-prose li {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-2);
+}
+
+.proposal-prose li::marker {
+  color: var(--prose-bullets);
+}
+
+.proposal-prose ul ul,
+.proposal-prose ol ol,
+.proposal-prose ul ol,
+.proposal-prose ol ul {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+/* Strong & Emphasis */
+.proposal-prose strong {
+  color: var(--prose-bold);
+  font-weight: var(--font-weight-semibold);
+}
+
+.proposal-prose em {
+  font-style: italic;
+}
+
+/* Links */
+.proposal-prose a {
+  color: var(--prose-links);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+.proposal-prose a:hover {
+  color: var(--color-primary-700);
+}
+
+.dark .proposal-prose a:hover,
+[data-theme="dark"] .proposal-prose a:hover {
+  color: var(--color-primary-300);
+}
+
+/* Blockquotes */
+.proposal-prose blockquote {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--prose-quote-borders);
+  color: var(--prose-quotes);
+  font-style: italic;
+}
+
+/* Code */
+.proposal-prose code {
+  color: var(--prose-code);
+  font-family: "Source Code Pro", var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-tertiary);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-md);
+}
+
+.proposal-prose pre {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  background: var(--prose-pre-bg);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
+.proposal-prose pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Horizontal Rule */
+.proposal-prose hr {
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
+  border: 0;
+  border-top: 1px solid var(--prose-hr);
+}
+
+/* Tables */
+.proposal-prose table {
+  width: 100%;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.proposal-prose th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--prose-th-borders);
+}
+
+.proposal-prose td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--prose-td-borders);
+}
+
+/* ============================================
    Print Styles
    ============================================ */
 

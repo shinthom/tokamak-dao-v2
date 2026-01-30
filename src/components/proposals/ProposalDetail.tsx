@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
+import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
@@ -119,12 +120,9 @@ export function ProposalDetail({ className, proposal }: ProposalDetailProps) {
         <div className="lg:col-span-2 space-y-6">
           {/* Description */}
           <Card>
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none text-[var(--text-secondary)] overflow-hidden">
-                <p className="whitespace-pre-wrap break-all">{proposal.description}</p>
+            <CardContent className="py-4">
+              <div className="proposal-prose max-w-none">
+                <ReactMarkdown>{proposal.description}</ReactMarkdown>
               </div>
             </CardContent>
           </Card>
