@@ -274,9 +274,9 @@ contract SecurityCouncil is ISecurityCouncil, ReentrancyGuard, Pausable {
 
     /// @inheritdoc ISecurityCouncil
     function cancelProposal(uint256 proposalId) external override onlyMember {
-        // This would call the timelock to cancel a queued proposal
-        // Implementation depends on timelock interface
-        bytes memory data = abi.encodeWithSignature("cancelProposal(uint256)", proposalId);
+        // Call the DAOGovernor's cancel function directly
+        // SecurityCouncil must be set as proposalGuardian in DAOGovernor
+        bytes memory data = abi.encodeWithSignature("cancel(uint256)", proposalId);
 
         uint256 actionId = _actionCount++;
 
@@ -286,7 +286,7 @@ contract SecurityCouncil is ISecurityCouncil, ReentrancyGuard, Pausable {
         _actions[actionId] = EmergencyAction({
             id: actionId,
             actionType: ActionType.CancelProposal,
-            target: timelockAddress,
+            target: daoGovernor,
             data: data,
             reason: "Cancel malicious proposal",
             createdAt: block.timestamp,
@@ -299,7 +299,7 @@ contract SecurityCouncil is ISecurityCouncil, ReentrancyGuard, Pausable {
         _pendingActionIds.push(actionId);
 
         emit EmergencyActionProposed(
-            actionId, ActionType.CancelProposal, timelockAddress, data, "Cancel malicious proposal", msg.sender
+            actionId, ActionType.CancelProposal, daoGovernor, data, "Cancel malicious proposal", msg.sender
         );
     }
 

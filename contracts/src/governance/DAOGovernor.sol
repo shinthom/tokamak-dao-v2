@@ -51,7 +51,7 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Default proposal creation cost (100 TON)
-    uint256 public constant DEFAULT_PROPOSAL_COST = 100 ether;
+    uint256 public constant DEFAULT_PROPOSAL_COST = 10 ether;
 
     /// @notice Default quorum (4% = 400 basis points)
     uint256 public constant DEFAULT_QUORUM = 400;
@@ -59,8 +59,8 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
     /// @notice Basis points denominator
     uint256 public constant BASIS_POINTS = 10_000;
 
-    /// @notice Default voting delay (1 day in blocks, ~7200 blocks)
-    uint256 public constant DEFAULT_VOTING_DELAY = 7200;
+    /// @notice Default voting delay (1 day in seconds)
+    uint256 public constant DEFAULT_VOTING_DELAY = 86_400;
 
     /// @notice Default voting period (7 days in blocks, ~50400 blocks)
     uint256 public constant DEFAULT_VOTING_PERIOD = 50_400;
@@ -86,6 +86,9 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
 
     /// @notice The timelock contract address
     address public override timelock;
+
+    /// @notice The proposal guardian (can cancel proposals in non-final states)
+    address public override proposalGuardian;
 
     /// @notice Proposal creation cost in TON
     uint256 public override proposalCreationCost;
@@ -261,12 +264,29 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc IDAOGovernor
+    /// @dev Proposer can always cancel their own proposal (except executed/canceled)
+    ///      Guardian can cancel proposals in non-final states (Pending, Active, Succeeded, Queued)
+    ///      Guardian cannot cancel Defeated or Expired proposals (already final states)
     function cancel(uint256 proposalId) external override {
         Proposal storage proposal = _proposals[proposalId];
         if (proposal.snapshotBlock == 0) revert ProposalNotFound();
-        if (msg.sender != proposal.proposer) revert NotProposer();
         if (proposal.executed) revert ProposalAlreadyExecuted();
         if (proposal.canceled) revert ProposalAlreadyCanceled();
+
+        bool isProposer = msg.sender == proposal.proposer;
+        bool isGuardian = msg.sender == proposalGuardian && proposalGuardian != address(0);
+
+        if (!isProposer && !isGuardian) {
+            revert IDAOGovernor.NotAuthorizedToCancel();
+        }
+
+        // Guardian cannot cancel final states (Defeated, Expired)
+        if (isGuardian && !isProposer) {
+            ProposalState currentState = state(proposalId);
+            if (currentState == ProposalState.Defeated || currentState == ProposalState.Expired) {
+                revert IDAOGovernor.InvalidProposalState();
+            }
+        }
 
         proposal.canceled = true;
 
@@ -409,6 +429,13 @@ contract DAOGovernor is IDAOGovernor, Ownable, ReentrancyGuard {
     function setTimelock(address newTimelock) external onlyOwner {
         if (newTimelock == address(0)) revert ZeroAddress();
         timelock = newTimelock;
+    }
+
+    /// @inheritdoc IDAOGovernor
+    function setProposalGuardian(address newGuardian) external override onlyOwner {
+        address oldGuardian = proposalGuardian;
+        proposalGuardian = newGuardian;
+        emit ProposalGuardianSet(oldGuardian, newGuardian);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -87,6 +87,15 @@ interface IDAOGovernor {
     /// @notice Emitted when proposal creation cost is updated
     event ProposalCostUpdated(uint256 oldCost, uint256 newCost);
 
+    /// @notice Emitted when proposal guardian is updated
+    event ProposalGuardianSet(address oldGuardian, address newGuardian);
+
+    /// @notice Error when caller is not authorized to cancel proposal
+    error NotAuthorizedToCancel();
+
+    /// @notice Error when proposal state is invalid for the operation
+    error InvalidProposalState();
+
     /// @notice Create a new proposal
     /// @param targets Target addresses for calls
     /// @param values ETH values for calls
@@ -182,6 +191,14 @@ interface IDAOGovernor {
     /// @notice Get the timelock address
     /// @return The timelock contract address
     function timelock() external view returns (address);
+
+    /// @notice Get the proposal guardian address
+    /// @return The guardian address (can cancel proposals in non-final states)
+    function proposalGuardian() external view returns (address);
+
+    /// @notice Set the proposal guardian
+    /// @param newGuardian The new guardian address (or address(0) to disable)
+    function setProposalGuardian(address newGuardian) external;
 
     /// @notice Hash a proposal for ID generation
     /// @param targets Target addresses

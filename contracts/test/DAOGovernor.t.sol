@@ -273,7 +273,7 @@ contract DAOGovernorTest is Test {
         assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Canceled));
     }
 
-    function test_CancelProposalRevertsIfNotProposer() public {
+    function test_CancelProposalRevertsIfNotProposerOrGuardian() public {
         address[] memory targets = new address[](1);
         targets[0] = address(governor);
         uint256[] memory values = new uint256[](1);
@@ -284,7 +284,7 @@ contract DAOGovernorTest is Test {
         uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
 
         vm.prank(user2);
-        vm.expectRevert(DAOGovernor.NotProposer.selector);
+        vm.expectRevert(IDAOGovernor.NotAuthorizedToCancel.selector);
         governor.cancel(proposalId);
     }
 
@@ -340,5 +340,305 @@ contract DAOGovernorTest is Test {
         uint256 hash2 = governor.hashProposal(targets, values, calldatas, descHash);
 
         assertEq(hash1, hash2);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        PROPOSAL GUARDIAN TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_SetProposalGuardian() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        assertEq(governor.proposalGuardian(), guardian);
+    }
+
+    function test_SetProposalGuardianEmitsEvent() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit IDAOGovernor.ProposalGuardianSet(address(0), guardian);
+        governor.setProposalGuardian(guardian);
+    }
+
+    function test_SetProposalGuardianOnlyOwner() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(user1);
+        vm.expectRevert();
+        governor.setProposalGuardian(guardian);
+    }
+
+    function test_GuardianCanCancelPendingProposal() public {
+        address guardian = makeAddr("guardian");
+
+        // Set guardian
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Create proposal (state: Pending)
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Pending));
+
+        // Guardian cancels
+        vm.prank(guardian);
+        governor.cancel(proposalId);
+
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Canceled));
+    }
+
+    function test_GuardianCanCancelActiveProposal() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        // Move to voting period (state: Active)
+        vm.roll(block.number + governor.votingDelay() + 1);
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Active));
+
+        // Guardian cancels
+        vm.prank(guardian);
+        governor.cancel(proposalId);
+
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Canceled));
+    }
+
+    function test_GuardianCanCancelSucceededProposal() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Setup delegate with voting power
+        vm.prank(delegate1);
+        registry.registerDelegate("Delegate1", "Philosophy", "Interests");
+
+        vm.prank(user1);
+        registry.delegate(delegate1, 10_000 ether);
+
+        vm.prank(user2);
+        registry.delegate(delegate1, 10_000 ether);
+
+        // Wait for delegation period
+        vm.warp(block.timestamp + 8 days);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        // Move to voting period
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        // Cast vote
+        vm.prank(delegate1);
+        governor.castVote(proposalId, IDAOGovernor.VoteType.For);
+
+        // Move past voting period (state: Succeeded)
+        vm.roll(block.number + governor.votingPeriod() + 1);
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Succeeded));
+
+        // Guardian cancels
+        vm.prank(guardian);
+        governor.cancel(proposalId);
+
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Canceled));
+    }
+
+    function test_GuardianCanCancelQueuedProposal() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Setup delegate with voting power
+        vm.prank(delegate1);
+        registry.registerDelegate("Delegate1", "Philosophy", "Interests");
+
+        vm.prank(user1);
+        registry.delegate(delegate1, 10_000 ether);
+
+        vm.prank(user2);
+        registry.delegate(delegate1, 10_000 ether);
+
+        vm.warp(block.timestamp + 8 days);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(delegate1);
+        governor.castVote(proposalId, IDAOGovernor.VoteType.For);
+
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        // Queue proposal (state: Queued)
+        governor.queue(proposalId);
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Queued));
+
+        // Guardian cancels
+        vm.prank(guardian);
+        governor.cancel(proposalId);
+
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Canceled));
+    }
+
+    function test_GuardianCannotCancelDefeatedProposal() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        // Move past voting period without any votes (state: Defeated due to no quorum)
+        vm.roll(block.number + governor.votingDelay() + governor.votingPeriod() + 1);
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Defeated));
+
+        // Guardian cannot cancel Defeated proposal
+        vm.prank(guardian);
+        vm.expectRevert(IDAOGovernor.InvalidProposalState.selector);
+        governor.cancel(proposalId);
+    }
+
+    function test_GuardianCannotCancelExpiredProposal() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Setup delegate with voting power
+        vm.prank(delegate1);
+        registry.registerDelegate("Delegate1", "Philosophy", "Interests");
+
+        vm.prank(user1);
+        registry.delegate(delegate1, 10_000 ether);
+
+        vm.prank(user2);
+        registry.delegate(delegate1, 10_000 ether);
+
+        vm.warp(block.timestamp + 8 days);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(delegate1);
+        governor.castVote(proposalId, IDAOGovernor.VoteType.For);
+
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        // Queue proposal
+        governor.queue(proposalId);
+
+        // Move past grace period (state: Expired)
+        vm.warp(block.timestamp + 7 days + 14 days + 1);
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Expired));
+
+        // Guardian cannot cancel Expired proposal
+        vm.prank(guardian);
+        vm.expectRevert(IDAOGovernor.InvalidProposalState.selector);
+        governor.cancel(proposalId);
+    }
+
+    function test_NonGuardianCannotCancelOthersProposal() public {
+        address guardian = makeAddr("guardian");
+        address nonGuardian = makeAddr("nonGuardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        // Non-guardian cannot cancel others' proposal
+        vm.prank(nonGuardian);
+        vm.expectRevert(IDAOGovernor.NotAuthorizedToCancel.selector);
+        governor.cancel(proposalId);
+    }
+
+    function test_ProposerCanStillCancelDefeatedProposal() public {
+        address guardian = makeAddr("guardian");
+
+        vm.prank(owner);
+        governor.setProposalGuardian(guardian);
+
+        // Create proposal
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("setQuorum(uint256)", 500);
+
+        vm.prank(user1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Test");
+
+        // Move past voting period without any votes (state: Defeated)
+        vm.roll(block.number + governor.votingDelay() + governor.votingPeriod() + 1);
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Defeated));
+
+        // Proposer can still cancel even if Defeated
+        vm.prank(user1);
+        governor.cancel(proposalId);
+
+        assertEq(uint256(governor.state(proposalId)), uint256(IDAOGovernor.ProposalState.Canceled));
     }
 }
