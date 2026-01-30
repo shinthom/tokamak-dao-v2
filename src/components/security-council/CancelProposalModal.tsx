@@ -188,7 +188,7 @@ export function CancelProposalModal({
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   step >= s
-                    ? "bg-[var(--color-primary)] text-white"
+                    ? "bg-[var(--color-primary-500)] text-white"
                     : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                 }`}
               >
@@ -214,7 +214,7 @@ export function CancelProposalModal({
                 <div
                   className={`flex-1 h-0.5 mx-2 ${
                     step > s
-                      ? "bg-[var(--color-primary)]"
+                      ? "bg-[var(--color-primary-500)]"
                       : "bg-[var(--border-secondary)]"
                   }`}
                 />

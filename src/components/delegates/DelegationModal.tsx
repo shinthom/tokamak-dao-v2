@@ -273,7 +273,7 @@ export function DelegationModal({
             <Button
               variant="ghost"
               size="xs"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 text-[var(--color-primary)] hover:text-[var(--color-primary-600)] font-semibold"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 text-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] font-semibold"
               onClick={handleMax}
             >
               MAX
@@ -303,7 +303,7 @@ export function DelegationModal({
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${
                   step === "approve"
-                    ? "bg-[var(--color-primary)] text-white"
+                    ? "bg-[var(--color-primary-500)] text-white"
                     : "bg-[var(--color-success-500)] text-white"
                 }`}
               >
@@ -323,7 +323,7 @@ export function DelegationModal({
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${
                   step === "delegate"
-                    ? "bg-[var(--color-primary)] text-white"
+                    ? "bg-[var(--color-primary-500)] text-white"
                     : "bg-[var(--border-secondary)] text-[var(--text-tertiary)]"
                 }`}
               >

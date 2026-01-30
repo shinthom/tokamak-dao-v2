@@ -99,7 +99,7 @@ export function ProposalSelectList({
                   "hover:border-[var(--border-hover)]",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-1",
                   isSelected
-                    ? "border-[var(--color-primary)] bg-[var(--bg-brand-subtle)]"
+                    ? "border-[var(--color-primary-500)] bg-[var(--bg-brand-subtle)]"
                     : "border-[var(--border-default)] bg-[var(--bg-secondary)]"
                 )}
               >
