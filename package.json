@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "anvil": "./contracts/scripts/start-anvil.sh",
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test",
+    "contracts:deploy:local": "./contracts/scripts/deploy-local.sh",
     "contracts:deploy:sepolia": "./contracts/scripts/deploy-sepolia.sh"
   },
   "dependencies": {

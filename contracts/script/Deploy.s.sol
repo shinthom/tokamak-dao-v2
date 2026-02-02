@@ -117,6 +117,10 @@ contract DeployScript is Script {
 /// @title Deploy Script for Local Testing
 /// @notice Deploys all contracts with mock TON for local testing
 contract DeployLocalScript is Script {
+    // Test accounts for local development
+    address constant TEST_ACCOUNT_1 = 0x488f3660FCD32099F2A250633822a6fbF6Eb771B;
+    address constant TEST_ACCOUNT_2 = 0x31b4873B1730D924124A8118bbA84eE5672BE446;
+
     function run() public {
         vm.startBroadcast();
 
@@ -164,7 +168,37 @@ contract DeployLocalScript is Script {
         // Setup vTON minter
         vton.setMinter(deployer, true);
 
+        // Deploy VTONFaucet
+        VTONFaucet faucet = new VTONFaucet(address(vton), deployer);
+        console.log("VTONFaucet deployed at:", address(faucet));
+
+        // Deploy TONFaucet
+        TONFaucet tonFaucet = new TONFaucet(address(ton), deployer);
+        console.log("TONFaucet deployed at:", address(tonFaucet));
+
+        // Grant minter permission to faucet
+        vton.setMinter(address(faucet), true);
+
+        // Mint tokens to test accounts
+        uint256 testAmount = 10_000 ether;
+        vton.mint(TEST_ACCOUNT_1, testAmount);
+        vton.mint(TEST_ACCOUNT_2, testAmount);
+        ton.mint(TEST_ACCOUNT_1, testAmount);
+        ton.mint(TEST_ACCOUNT_2, testAmount);
+        console.log("Minted", testAmount / 1 ether, "vTON and TON to test accounts");
+
         vm.stopBroadcast();
+
+        // Log summary
+        console.log("\n=== Local Deployment Summary ===");
+        console.log("MockTON:", address(ton));
+        console.log("vTON:", address(vton));
+        console.log("DelegateRegistry:", address(delegateRegistry));
+        console.log("Timelock:", address(timelock));
+        console.log("DAOGovernor:", address(governor));
+        console.log("SecurityCouncil:", address(securityCouncil));
+        console.log("VTONFaucet:", address(faucet));
+        console.log("TONFaucet:", address(tonFaucet));
     }
 }
 

@@ -12,7 +12,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 // Deployment blocks by chain ID (for event log queries)
 export const DEPLOYMENT_BLOCKS: Record<number, bigint> = {
-  31337: BigInt(0), // Localhost
+  1337: BigInt(0), // Localhost
   11155111: BigInt(10153752), // Sepolia (0x9aef18)
   1: BigInt(0), // Mainnet (placeholder)
 };
@@ -25,15 +25,15 @@ export function getDeploymentBlock(chainId: number): bigint {
 // Contract addresses by chain ID
 export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
   // Localhost (Foundry/Anvil)
-  31337: {
-    ton: ZERO_ADDRESS,
-    vton: ZERO_ADDRESS,
-    delegateRegistry: ZERO_ADDRESS,
-    daoGovernor: ZERO_ADDRESS,
-    securityCouncil: ZERO_ADDRESS,
-    timelock: ZERO_ADDRESS,
-    faucet: ZERO_ADDRESS,
-    tonFaucet: ZERO_ADDRESS,
+  1337: {
+    ton: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    vton: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    delegateRegistry: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    daoGovernor: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    securityCouncil: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    timelock: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    faucet: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    tonFaucet: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
   },
   // Sepolia Testnet
   11155111: {

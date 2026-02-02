@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatEther } from "viem";
+import { useChainId } from "wagmi";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label, HelperText } from "@/components/ui/input";
@@ -14,7 +15,16 @@ import {
   useMintTON,
 } from "@/hooks/contracts";
 
-const SEPOLIA_ETHERSCAN_URL = "https://sepolia.etherscan.io/tx";
+const NETWORK_NAMES: Record<number, string> = {
+  1: "Ethereum Mainnet",
+  11155111: "Ethereum Sepolia",
+  1337: "Localhost (Anvil)",
+};
+
+const BLOCK_EXPLORER_TX_URL: Record<number, string> = {
+  1: "https://etherscan.io/tx",
+  11155111: "https://sepolia.etherscan.io/tx",
+};
 
 /**
  * Format token balance
@@ -34,6 +44,10 @@ function formatBalance(value: bigint): string {
  */
 export function FaucetCard() {
   const { address, isConnected, isReady } = useWalletConnection();
+  const chainId = useChainId();
+
+  const networkName = NETWORK_NAMES[chainId] ?? `Chain ${chainId}`;
+  const blockExplorerTxUrl = BLOCK_EXPLORER_TX_URL[chainId];
 
   // vTON Faucet
   const { claimAmount: vtonClaimAmount, paused, isDeployed: isVTONFaucetDeployed } = useFaucetConfig();
@@ -143,7 +157,7 @@ export function FaucetCard() {
             <div className="space-y-2">
               <Label>Network</Label>
               <Input
-                value="Ethereum Sepolia"
+                value={networkName}
                 readOnly
                 disabled
                 size="lg"
@@ -181,14 +195,20 @@ export function FaucetCard() {
                 <p className="text-sm font-medium text-[var(--fg-success-primary)]">
                   Successfully received {formatBalance(vtonClaimAmount)} vTON!
                 </p>
-                <a
-                  href={`${SEPOLIA_ETHERSCAN_URL}/${vtonSuccessTxHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block text-sm text-[var(--fg-success-primary)] underline hover:opacity-80 break-all"
-                >
-                  View transaction
-                </a>
+                {blockExplorerTxUrl ? (
+                  <a
+                    href={`${blockExplorerTxUrl}/${vtonSuccessTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-sm text-[var(--fg-success-primary)] underline hover:opacity-80 break-all"
+                  >
+                    View transaction
+                  </a>
+                ) : (
+                  <p className="mt-2 text-xs text-[var(--fg-success-primary)] opacity-80 break-all font-mono">
+                    TX: {vtonSuccessTxHash}
+                  </p>
+                )}
               </div>
             )}
 
@@ -228,14 +248,20 @@ export function FaucetCard() {
                 <p className="text-sm font-medium text-[var(--fg-success-primary)]">
                   Successfully received {formatBalance(tonClaimAmount)} TON!
                 </p>
-                <a
-                  href={`${SEPOLIA_ETHERSCAN_URL}/${tonSuccessTxHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block text-sm text-[var(--fg-success-primary)] underline hover:opacity-80 break-all"
-                >
-                  View transaction
-                </a>
+                {blockExplorerTxUrl ? (
+                  <a
+                    href={`${blockExplorerTxUrl}/${tonSuccessTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-sm text-[var(--fg-success-primary)] underline hover:opacity-80 break-all"
+                  >
+                    View transaction
+                  </a>
+                ) : (
+                  <p className="mt-2 text-xs text-[var(--fg-success-primary)] opacity-80 break-all font-mono">
+                    TX: {tonSuccessTxHash}
+                  </p>
+                )}
               </div>
             )}
 
