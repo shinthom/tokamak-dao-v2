@@ -18,7 +18,7 @@ const selectVariants = cva(
     "px-[var(--input-padding-x)] py-[var(--input-padding-y)]",
     "transition-colors duration-[var(--duration-fast)]",
     "hover:border-[var(--input-border-hover)]",
-    "focus:outline-none focus:ring-2 focus:ring-[var(--input-border-focus)] focus:ring-offset-1",
+    "focus:outline-none focus:border-2 focus:border-[var(--input-border-focus)]",
     "disabled:cursor-not-allowed disabled:opacity-50",
     "cursor-pointer",
     "pr-10",
@@ -33,7 +33,7 @@ const selectVariants = cva(
       error: {
         true: [
           "border-[var(--status-error-fg)]",
-          "focus:ring-[var(--status-error-fg)]",
+          "focus:border-2 focus:border-[var(--status-error-fg)]",
         ],
       },
     },

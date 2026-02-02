@@ -13,6 +13,7 @@ const cardVariants = cva(
     "bg-[var(--card-bg)]",
     "border border-[var(--card-border)]",
     "rounded-[var(--card-radius)]",
+    "overflow-visible",
     "transition-all duration-[var(--duration-normal)] ease-[var(--ease-default)]",
   ],
   {
