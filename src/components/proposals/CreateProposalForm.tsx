@@ -136,83 +136,68 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
         <CardHeader>
           <CardTitle>Requirements</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="p-4 rounded-lg bg-[var(--bg-tertiary)]">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Proposal Creation Cost
-              </p>
-              <p className="text-lg font-semibold text-[var(--text-primary)]">
-                {formattedCost} TON
-              </p>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                This amount will be burned
+        <CardContent className="space-y-3">
+          {/* TON Requirement Row */}
+          <div className="flex items-center justify-between py-2 border-b border-[var(--border-primary)]">
+            <div>
+              <p className="text-sm text-[var(--text-secondary)]">TON Burn Cost</p>
+              <p className="text-xs text-[var(--text-tertiary)]">
+                {formattedCost} TON required
               </p>
             </div>
-
-            <div className="p-4 rounded-lg bg-[var(--bg-tertiary)]">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Your TON Balance
-              </p>
+            <div className="text-right">
               <p className={cn(
-                "text-lg font-semibold",
+                "text-sm font-medium tabular-nums",
                 hasEnoughTON ? "text-[var(--text-primary)]" : "text-[var(--status-error-text)]"
               )}>
                 {formatVTON(tonBalance)} TON
               </p>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                {hasEnoughAllowance ? "Approved" : hasEnoughTON ? "Approval needed" : ""}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg bg-[var(--bg-tertiary)]">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Minimum vTON Required
-              </p>
-              <p className="text-lg font-semibold text-[var(--text-primary)]">
-                {formatVTON(requiredVTON)} vTON
-              </p>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                {proposalThreshold ? `${Number(proposalThreshold) / 100}%` : "0.25%"} of total supply
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg bg-[var(--bg-tertiary)]">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Your vTON Balance
-              </p>
               <p className={cn(
-                "text-lg font-semibold",
-                hasEnoughVTON ? "text-[var(--text-primary)]" : "text-[var(--status-error-text)]"
+                "text-xs",
+                hasEnoughTON ? "text-[var(--text-tertiary)]" : "text-[var(--status-error-text)]"
               )}>
-                {formatVTON(vtonBalance ?? BigInt(0))} vTON
-              </p>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                {hasEnoughVTON ? "Requirement met" : "Insufficient balance"}
+                {hasEnoughTON
+                  ? hasEnoughAllowance ? "Ready" : "Needs approval"
+                  : "Insufficient"}
               </p>
             </div>
           </div>
 
+          {/* vTON Requirement Row */}
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="text-sm text-[var(--text-secondary)]">vTON Minimum</p>
+              <p className="text-xs text-[var(--text-tertiary)]">
+                {formatVTON(requiredVTON)} vTON ({proposalThreshold ? `${Number(proposalThreshold) / 100}%` : "0.25%"} of supply)
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={cn(
+                "text-sm font-medium tabular-nums",
+                hasEnoughVTON ? "text-[var(--text-primary)]" : "text-[var(--status-error-text)]"
+              )}>
+                {formatVTON(vtonBalance ?? BigInt(0))} vTON
+              </p>
+              <p className={cn(
+                "text-xs",
+                hasEnoughVTON ? "text-[var(--text-tertiary)]" : "text-[var(--status-error-text)]"
+              )}>
+                {hasEnoughVTON ? "Ready" : "Insufficient"}
+              </p>
+            </div>
+          </div>
+
+          {/* Status Messages */}
           {!isConnected && (
-            <div className="mt-4 p-3 rounded-lg bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] text-sm">
+            <div className="mt-2 p-3 rounded-lg bg-[var(--status-warning-bg)] text-[var(--status-warning-text)] text-sm">
               Please connect your wallet to create a proposal.
             </div>
           )}
 
-          {isConnected && !hasEnoughTON && (
-            <div className="mt-4 p-3 rounded-lg bg-[var(--status-error-bg)] text-[var(--status-error-text)] text-sm">
-              Insufficient TON balance. You need {formattedCost} TON to create a proposal.{" "}
-              <a href="/faucet" className="underline font-medium">
-                Get TON from faucet
-              </a>
-            </div>
-          )}
-
-          {isConnected && hasEnoughTON && !hasEnoughVTON && (
-            <div className="mt-4 p-3 rounded-lg bg-[var(--status-error-bg)] text-[var(--status-error-text)] text-sm">
-              Insufficient vTON balance. You need at least {formatVTON(requiredVTON)} vTON ({proposalThreshold ? `${Number(proposalThreshold) / 100}%` : "0.25%"} of total supply) to create a proposal.{" "}
-              <a href="/faucet" className="underline font-medium">
-                Get vTON from faucet
+          {isConnected && (!hasEnoughTON || !hasEnoughVTON) && (
+            <div className="mt-2 pt-3 border-t border-[var(--border-primary)]">
+              <a href="/faucet" className="text-sm text-[var(--brand-primary)] hover:underline">
+                Get tokens from faucet →
               </a>
             </div>
           )}
