@@ -29,6 +29,14 @@ When writing web components:
 - ES modules (import/export)
 - Tailwind CSS + CSS variables
 
+## Dependencies
+
+### @tokamak-ecosystem/dao-action-builder
+- Core package for building DAO proposal actions
+- Always check for latest version before use: `npm outdated @tokamak-ecosystem/dao-action-builder`
+- Update if needed: `npm install @tokamak-ecosystem/dao-action-builder@latest`
+- Source code location: `node_modules/@tokamak-ecosystem/dao-action-builder/dist/`
+
 ## Commands
 - `npm run dev` - Development server
 - `npm run build` - Build
