@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount, useChainId, usePublicClient } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input, Textarea, Label, HelperText } from "@/components/ui/input";
 import { cn, formatVTON } from "@/lib/utils";
 import { usePropose, useGovernanceParams } from "@/hooks/contracts/useDAOGovernor";
@@ -145,21 +146,18 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
                 {formattedCost} TON required
               </p>
             </div>
-            <div className="text-right">
-              <p className={cn(
-                "text-sm font-medium tabular-nums",
-                hasEnoughTON ? "text-[var(--text-primary)]" : "text-[var(--status-error-text)]"
-              )}>
+            <div className="text-right flex flex-col items-end gap-1">
+              <p className="text-sm font-medium tabular-nums text-[var(--text-primary)]">
                 {formatVTON(tonBalance)} TON
               </p>
-              <p className={cn(
-                "text-xs",
-                hasEnoughTON ? "text-[var(--text-tertiary)]" : "text-[var(--status-error-text)]"
-              )}>
+              <Badge
+                variant={hasEnoughTON ? (hasEnoughAllowance ? "success" : "warning") : "error"}
+                size="sm"
+              >
                 {hasEnoughTON
                   ? hasEnoughAllowance ? "Ready" : "Needs approval"
                   : "Insufficient"}
-              </p>
+              </Badge>
             </div>
           </div>
 
@@ -171,19 +169,16 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
                 {formatVTON(requiredVTON)} vTON ({proposalThreshold ? `${Number(proposalThreshold) / 100}%` : "0.25%"} of supply)
               </p>
             </div>
-            <div className="text-right">
-              <p className={cn(
-                "text-sm font-medium tabular-nums",
-                hasEnoughVTON ? "text-[var(--text-primary)]" : "text-[var(--status-error-text)]"
-              )}>
+            <div className="text-right flex flex-col items-end gap-1">
+              <p className="text-sm font-medium tabular-nums text-[var(--text-primary)]">
                 {formatVTON(vtonBalance ?? BigInt(0))} vTON
               </p>
-              <p className={cn(
-                "text-xs",
-                hasEnoughVTON ? "text-[var(--text-tertiary)]" : "text-[var(--status-error-text)]"
-              )}>
+              <Badge
+                variant={hasEnoughVTON ? "success" : "error"}
+                size="sm"
+              >
                 {hasEnoughVTON ? "Ready" : "Insufficient"}
-              </p>
+              </Badge>
             </div>
           </div>
 
@@ -302,7 +297,7 @@ Potential risks and mitigations"
       <Card>
         <CardHeader className="cursor-pointer" onClick={() => setShowAdvanced(!showAdvanced)}>
           <div className="flex items-center justify-between">
-            <CardTitle>Actions (Advanced)</CardTitle>
+            <CardTitle>Actions</CardTitle>
             <svg
               className={cn(
                 "size-5 text-[var(--text-tertiary)] transition-transform",
