@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useChainId, usePublicClient } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input, Textarea, Label, HelperText } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { cn, formatVTON } from "@/lib/utils";
 import { usePropose, useGovernanceParams } from "@/hooks/contracts/useDAOGovernor";
 import { useTONAllowance, useApproveTON, useTONBalance } from "@/hooks/contracts/useTON";
 import { useVTONBalance, useTotalSupply } from "@/hooks/contracts/useVTON";
+import { useTotalDelegated } from "@/hooks/contracts/useDelegateRegistry";
 import { getContractAddresses, DAO_GOVERNOR_ABI } from "@/constants/contracts";
 import { parseEventLogs } from "viem";
 import { ActionBuilderList, DEFAULT_ACTION } from "./ActionBuilderList";
@@ -36,11 +38,21 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
   ]);
 
   const { proposeAsync } = usePropose();
-  const { proposalCreationCost, proposalThreshold } = useGovernanceParams();
+  const { proposalCreationCost, proposalThreshold, isLoading: isGovernanceLoading } = useGovernanceParams();
 
   // vTON balance and threshold state
   const { data: vtonBalance } = useVTONBalance(address);
-  const { data: vtonTotalSupply } = useTotalSupply();
+  const { data: vtonTotalSupply, isLoading: isTotalSupplyLoading } = useTotalSupply();
+  const { data: delegatedToMe } = useTotalDelegated(address);
+
+  // Loading state for vTON requirements
+  // Also treat undefined data as loading (data may be undefined even after isLoading becomes false)
+  const isVTONDataLoading = isGovernanceLoading || isTotalSupplyLoading ||
+    vtonTotalSupply === undefined || proposalThreshold === undefined;
+
+
+  // Total voting power = balance + delegated to me
+  const totalVotingPower = (vtonBalance ?? BigInt(0)) + (delegatedToMe ?? BigInt(0));
 
   // TON approval state
   const { data: tonBalance } = useTONBalance(address);
@@ -62,7 +74,7 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
   const requiredVTON = vtonTotalSupply && proposalThreshold
     ? (vtonTotalSupply * proposalThreshold) / BigInt(10000)
     : BigInt(0);
-  const hasEnoughVTON = (vtonBalance ?? BigInt(0)) >= requiredVTON;
+  const hasEnoughVTON = totalVotingPower >= requiredVTON;
 
   // Form validation
   const isFormValid =
@@ -141,9 +153,9 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
           {/* TON Requirement Row */}
           <div className="flex items-center justify-between py-2 border-b border-[var(--border-primary)]">
             <div>
-              <p className="text-sm text-[var(--text-secondary)]">TON Burn Cost</p>
+              <p className="text-sm text-[var(--text-secondary)]">Proposal Fee</p>
               <p className="text-xs text-[var(--text-tertiary)]">
-                {formattedCost} TON required
+                ({formattedCost} TON will be burned to prevent spam)
               </p>
             </div>
             <div className="text-right flex flex-col items-end gap-1">
@@ -164,21 +176,34 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
           {/* vTON Requirement Row */}
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm text-[var(--text-secondary)]">vTON Minimum</p>
+              <p className="text-sm text-[var(--text-secondary)]">Voting Power Required</p>
               <p className="text-xs text-[var(--text-tertiary)]">
-                {formatVTON(requiredVTON)} vTON ({proposalThreshold ? `${Number(proposalThreshold) / 100}%` : "0.25%"} of supply)
+                {isVTONDataLoading
+                  ? "Loading..."
+                  : `(You need ${formatVTON(requiredVTON)} vTON voting power to create proposals)`}
               </p>
             </div>
             <div className="text-right flex flex-col items-end gap-1">
-              <p className="text-sm font-medium tabular-nums text-[var(--text-primary)]">
-                {formatVTON(vtonBalance ?? BigInt(0))} vTON
-              </p>
-              <Badge
-                variant={hasEnoughVTON ? "success" : "error"}
-                size="sm"
-              >
-                {hasEnoughVTON ? "Ready" : "Insufficient"}
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-sm font-medium tabular-nums text-[var(--text-primary)] underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2">
+                      {formatVTON(totalVotingPower)} vTON
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Your balance: {formatVTON(vtonBalance ?? BigInt(0))} vTON + Delegated to you: {formatVTON(delegatedToMe ?? BigInt(0))} vTON
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {!isVTONDataLoading && (
+                <Badge
+                  variant={hasEnoughVTON ? "success" : "error"}
+                  size="sm"
+                >
+                  {hasEnoughVTON ? "Ready" : "Insufficient"}
+                </Badge>
+              )}
             </div>
           </div>
 
