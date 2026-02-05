@@ -37,14 +37,14 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
   },
   // Sepolia Testnet
   11155111: {
-    ton: "0x3c3fA66d9a93E7170548172D7Af33d7C211C1B80",
-    vton: "0xa9b5475584A17B86c172C40315da10BF658D0196",
-    delegateRegistry: "0xCf4701e6757a7589dD48a3b358382552505Ed629",
-    daoGovernor: "0x6Bc7d0BD4Dd07fc8061Ad89C796a16fcb0c31cbF",
-    securityCouncil: "0x266522094d9f48041F223A69c81728A7ff6091C5",
-    timelock: "0xA9DA9c52Ea41Ef79C95ec1697fc526f7a4aCcC3F",
-    faucet: "0xd51B86F9cE99dd8FD92fD5e8203D03f7b68Ed341",
-    tonFaucet: "0xCed778823e5c2BaA2de70518945f80546f968C57",
+    ton: "0xc1Dd6743b6db69fCBCC65697FC40eF5F1ea57148",
+    vton: "0x57131b72F024C90A5F7A453B43F257E908Bc8987",
+    delegateRegistry: "0xEb12f002790d9057520580e86aa5bbe4FDef9b44",
+    daoGovernor: "0x601D7881c6157625585730E1CC890b7ddd2bEe2c",
+    securityCouncil: "0x92618F3CCF5BAdFFE1f8F38F322d030D55045557",
+    timelock: "0xC8663Bd7151bDe23d1d1586DA0499261B7731Bc8",
+    faucet: "0xe8834C1DCd5F3a244007f540fFd62ECa5019F7bf",
+    tonFaucet: "0x2914dCB23101c023f63B9f94736a7821eca4cE56",
   },
   // Ethereum Mainnet
   1: {
@@ -58,7 +58,7 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
 
 // Get contract addresses for a specific chain
 export function getContractAddresses(chainId: number): ContractAddresses {
-  return CONTRACT_ADDRESSES[chainId] ?? CONTRACT_ADDRESSES[31337];
+  return CONTRACT_ADDRESSES[chainId] ?? CONTRACT_ADDRESSES[1337];
 }
 
 // Check if contracts are deployed (not zero address)
