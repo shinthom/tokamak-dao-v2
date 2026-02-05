@@ -163,12 +163,10 @@ export function CreateProposalForm({ className }: CreateProposalFormProps) {
                 {formatVTON(tonBalance)} TON
               </p>
               <Badge
-                variant={hasEnoughTON ? (hasEnoughAllowance ? "success" : "warning") : "error"}
+                variant={hasEnoughTON ? "success" : "error"}
                 size="sm"
               >
-                {hasEnoughTON
-                  ? hasEnoughAllowance ? "Ready" : "Needs approval"
-                  : "Insufficient"}
+                {hasEnoughTON ? "Ready" : "Insufficient"}
               </Badge>
             </div>
           </div>
@@ -380,9 +378,7 @@ Potential risks and mitigations"
               : submitStep === "waitingProposal"
               ? "Creating Proposal..."
               : "Processing..."
-            : hasEnoughAllowance
-            ? "Create Proposal"
-            : "Approve & Create Proposal"}
+            : "Create Proposal"}
         </Button>
       </div>
     </form>

@@ -4,7 +4,7 @@ import * as React from "react";
 import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { useBlockNumber } from "wagmi";
+import { useBlock } from "wagmi";
 import { formatUnits } from "viem";
 import { ProposalDetail, type ProposalDetailData } from "@/components/proposals/ProposalDetail";
 import { useProposal, useProposalState } from "@/hooks/contracts/useDAOGovernor";
@@ -192,7 +192,7 @@ function RealProposalDetail({ id }: { id: string }) {
   const proposalId = BigInt(id);
   const { data: proposalData, isLoading: proposalLoading, isError: proposalError, refetch: refetchProposal } = useProposal(proposalId);
   const { data: stateData, isLoading: stateLoading } = useProposalState(proposalId);
-  const { data: currentBlock, isLoading: blockLoading } = useBlockNumber();
+  const { data: block, isLoading: blockLoading } = useBlock();
 
   // Handle vote success - refetch proposal data
   const handleVoteSuccess = React.useCallback(() => {
@@ -233,7 +233,7 @@ function RealProposalDetail({ id }: { id: string }) {
     );
   }
 
-  if (proposalError || !proposalData || !currentBlock) {
+  if (proposalError || !proposalData || !block) {
     notFound();
   }
 
@@ -254,9 +254,10 @@ function RealProposalDetail({ id }: { id: string }) {
   };
 
   const status = mapProposalState(stateData as number);
-  const now = new Date();
+  const currentBlock = block.number;
+  const now = new Date(Number(block.timestamp) * 1000);
 
-  // Convert block numbers to dates using current block as reference
+  // Convert block numbers to dates using blockchain time as reference
   const voteStartTime = blockToDate(proposal.voteStart, currentBlock, now);
   const voteEndTime = blockToDate(proposal.voteEnd, currentBlock, now);
   // Estimate created time from snapshot block

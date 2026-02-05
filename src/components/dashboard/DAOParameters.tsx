@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatBasisPoints, formatDuration, formatVTON } from "@/lib/utils";
 import { useGovernanceParams } from "@/hooks/contracts/useDAOGovernor";
 
+const BLOCK_TIME_SECONDS = 12;
+
 /**
  * DAO Parameters Section
  * Shows governance and delegation parameters
@@ -25,12 +27,12 @@ export function DAOParameters() {
     },
     {
       label: "Voting Period",
-      value: formatDuration(votingPeriod ?? BigInt(0)),
+      value: formatDuration(Number(votingPeriod ?? BigInt(0)) * BLOCK_TIME_SECONDS),
       description: "Duration of voting",
     },
     {
       label: "Voting Delay",
-      value: formatDuration(votingDelay ?? BigInt(0)),
+      value: formatDuration(Number(votingDelay ?? BigInt(0)) * BLOCK_TIME_SECONDS),
       description: "Delay before voting starts",
     },
     {

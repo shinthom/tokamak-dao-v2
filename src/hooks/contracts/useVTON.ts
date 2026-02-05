@@ -31,6 +31,7 @@ export function useTotalSupply() {
   return {
     data: isDeployed ? result.data : MOCK_DATA.totalSupply,
     isLoading: isDeployed ? result.isLoading : false,
+    isFetching: isDeployed ? result.isFetching : false,
     isError: isDeployed ? result.isError : false,
     error: isDeployed ? result.error : null,
     isDeployed,

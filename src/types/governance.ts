@@ -83,8 +83,8 @@ export interface DelegatorInfo {
 // DAO Parameters
 export interface DAOParameters {
   quorum: bigint; // in basis points (e.g., 400 = 4%)
-  votingPeriod: bigint; // in seconds
-  votingDelay: bigint; // in seconds
+  votingPeriod: bigint; // in blocks (~12s/block)
+  votingDelay: bigint; // in blocks (~12s/block)
   proposalCreationCost: bigint; // TON cost to create proposal
 }
 

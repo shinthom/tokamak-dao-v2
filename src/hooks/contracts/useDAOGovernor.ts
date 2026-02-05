@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useReadContract, useReadContracts, useWriteContract, useChainId, useBlockNumber } from "wagmi";
+import { useReadContract, useReadContracts, useWriteContract, useChainId, useBlock } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getContractAddresses,
@@ -24,8 +24,8 @@ function blockToDate(blockNumber: bigint, currentBlock: bigint, currentTime: Dat
 const MOCK_DATA = {
   proposalCount: BigInt(0),
   quorum: BigInt(400), // 4%
-  votingPeriod: BigInt(604800), // 7 days in seconds
-  votingDelay: BigInt(86400), // 1 day in seconds
+  votingPeriod: BigInt(50400), // 7 days in blocks (~12s/block)
+  votingDelay: BigInt(7200), // 1 day in blocks (~12s/block)
   proposalCreationCost: BigInt("100000000000000000000"), // 100 TON
   proposalThreshold: BigInt(25), // 0.25%
 };
@@ -110,8 +110,8 @@ export function useProposals() {
   const addresses = getContractAddresses(chainId);
   const isDeployed = areContractsDeployed(chainId);
 
-  // Get current block number for date calculations
-  const { data: currentBlock } = useBlockNumber();
+  // Get current block for date calculations (using blockchain timestamp, not browser time)
+  const { data: block } = useBlock();
 
   // Get proposal IDs from contract
   const { data: proposalIds, isLoading: idsLoading, refetch: refetchIds } = useProposalIds();
@@ -143,7 +143,8 @@ export function useProposals() {
 
   // Parse results into proposals
   const proposals: ProposalListItem[] = [];
-  const now = new Date();
+  const currentBlock = block?.number;
+  const now = block ? new Date(Number(block.timestamp) * 1000) : new Date();
   if (results && ids.length > 0 && currentBlock) {
     for (let i = 0; i < ids.length; i++) {
       const proposalResult = results[i];
