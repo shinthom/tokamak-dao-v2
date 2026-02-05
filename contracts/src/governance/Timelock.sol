@@ -48,8 +48,8 @@ contract Timelock is ReentrancyGuard {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Minimum delay (1 day)
-    uint256 public constant MINIMUM_DELAY = 1 days;
+    /// @notice Minimum delay (1 hour)
+    uint256 public constant MINIMUM_DELAY = 1 hours;
 
     /// @notice Maximum delay (30 days)
     uint256 public constant MAXIMUM_DELAY = 30 days;

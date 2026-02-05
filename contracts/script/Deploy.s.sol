@@ -142,8 +142,8 @@ contract DeployLocalScript is Script {
         DelegateRegistry delegateRegistry = new DelegateRegistry(address(vton), deployer);
         console.log("DelegateRegistry deployed at:", address(delegateRegistry));
 
-        // Deploy Timelock
-        Timelock timelock = new Timelock(deployer, 7 days);
+        // Deploy Timelock (1 hour delay for local testing)
+        Timelock timelock = new Timelock(deployer, 1 hours);
         console.log("Timelock deployed at:", address(timelock));
 
         // Deploy DAOGovernor
@@ -172,8 +172,12 @@ contract DeployLocalScript is Script {
         // Set SecurityCouncil as proposal guardian (required for cancel functionality)
         governor.setProposalGuardian(address(securityCouncil));
 
-        // Set voting period to 1 day (~7200 blocks at 12s/block) for local testing
-        governor.setVotingPeriod(7200);
+        // Set voting delay & period to 1 hour (~300 blocks at 12s/block) for local testing
+        governor.setVotingDelay(300);
+        governor.setVotingPeriod(300);
+
+        // Set timelock delay to 1 hour for local testing
+        governor.setTimelockDelay(1 hours);
 
         // Setup vTON minter
         vton.setMinter(deployer, true);

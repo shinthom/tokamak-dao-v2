@@ -20,22 +20,28 @@ Open [http://localhost:3000](http://localhost:3000) with MetaMask (Chain ID: `13
 
 ### Testing Proposals (Time Travel)
 
-In the local environment, the Voting Period is set to **1 day** (7,200 blocks) instead of the production default of **7 days**. The Voting Delay is also **1 day** (7,200 blocks).
+In the local environment, the Voting Delay, Voting Period, and Timelock Delay are each set to **1 hour** (300 blocks) instead of the production defaults of **1 day / 7 days / 7 days**.
 
-1. Create a proposal, then skip the Voting Delay (1 day) to begin voting:
-    
+1. Create a proposal, then skip the Voting Delay (1 hour) to begin voting:
+
     ```
-    npm run time-travel -- 1d
+    npm run time-travel -- 1h
     ```
-    
+
 2. Cast your vote in the UI (For / Against / Abstain).
-3. Skip the Voting Period (1 day) to close voting:
-    
+3. Skip the Voting Period (1 hour) to close voting:
+
     ```
-    npm run time-travel -- 1d
+    npm run time-travel -- 1h
     ```
-    
-4. Queue and execute the proposal.
+
+4. Queue the proposal, then skip the Timelock Delay (1 hour):
+
+    ```
+    npm run time-travel -- 1h
+    ```
+
+5. Execute the proposal.
 
 ## Specification
 

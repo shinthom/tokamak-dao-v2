@@ -12,8 +12,9 @@
 #   3600      - 3600 seconds (1 hour)
 #
 # Presets:
-#   voting    - Skip voting period (7 days)
-#   timelock  - Skip timelock delay (7 days)
+#   pending   - Skip pending period (1 hour)
+#   voting    - Skip voting period (1 hour)
+#   timelock  - Skip timelock delay (1 hour)
 #   grace     - Skip grace period (14 days)
 #   now       - Show current block timestamp
 #
@@ -34,8 +35,9 @@ HOUR=3600
 DAY=86400
 
 # Preset durations
-VOTING_PERIOD=$((7 * DAY))    # 7 days
-TIMELOCK_DELAY=$((7 * DAY))   # 7 days
+PENDING_PERIOD=$((1 * HOUR))  # 1 hour
+VOTING_PERIOD=$((1 * HOUR))   # 1 hour
+TIMELOCK_DELAY=$((1 * HOUR))  # 1 hour
 GRACE_PERIOD=$((14 * DAY))    # 14 days
 
 # Usage message
@@ -51,8 +53,9 @@ usage() {
     echo "  3600      - 3600 seconds (1 hour)"
     echo ""
     echo "Presets:"
-    echo "  voting    - Skip voting period (7 days)"
-    echo "  timelock  - Skip timelock delay (7 days)"
+    echo "  pending   - Skip pending period (1 hour)"
+    echo "  voting    - Skip voting period (1 hour)"
+    echo "  timelock  - Skip timelock delay (1 hour)"
     echo "  grace     - Skip grace period (14 days)"
     echo "  now       - Show current block timestamp"
     echo ""
@@ -122,6 +125,10 @@ parse_duration() {
 
     # Check for presets
     case "$input" in
+        pending)
+            echo $PENDING_PERIOD
+            return
+            ;;
         voting)
             echo $VOTING_PERIOD
             return
