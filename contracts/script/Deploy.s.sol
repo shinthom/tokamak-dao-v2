@@ -173,6 +173,9 @@ contract DeployLocalScript is Script {
         // Set SecurityCouncil as proposal guardian (required for cancel functionality)
         governor.setProposalGuardian(address(securityCouncil));
 
+        // Set voting period to 1 day (~7200 blocks at 12s/block) for local testing
+        governor.setVotingPeriod(7200);
+
         // Setup vTON minter
         vton.setMinter(deployer, true);
 

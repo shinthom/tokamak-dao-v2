@@ -32,8 +32,8 @@ export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
     daoGovernor: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
     securityCouncil: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
     timelock: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-    faucet: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-    tonFaucet: "0x9A676e781A523b5d0C0e43731313A708CB607508",
+    faucet: "0x9A676e781A523b5d0C0e43731313A708CB607508",
+    tonFaucet: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
   },
   // Sepolia Testnet
   11155111: {
