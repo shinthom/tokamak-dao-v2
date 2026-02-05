@@ -26,14 +26,14 @@ export function getDeploymentBlock(chainId: number): bigint {
 export const CONTRACT_ADDRESSES: Record<number, ContractAddresses> = {
   // Localhost (Foundry/Anvil)
   1337: {
-    ton: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-    vton: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-    delegateRegistry: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-    daoGovernor: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-    securityCouncil: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-    timelock: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-    faucet: "0x9A676e781A523b5d0C0e43731313A708CB607508",
-    tonFaucet: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+    ton: "0x59b670e9fA9D0A427751Af201D676719a970857b",
+    vton: "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+    delegateRegistry: "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+    daoGovernor: "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
+    securityCouncil: "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+    timelock: "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+    faucet: "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+    tonFaucet: "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
   },
   // Sepolia Testnet
   11155111: {

@@ -153,12 +153,11 @@ contract DeployLocalScript is Script {
         console.log("DAOGovernor deployed at:", address(governor));
 
         // Deploy SecurityCouncil
-        address[] memory extMembers = new address[](2);
-        extMembers[0] = address(0x1111111111111111111111111111111111111111);
-        extMembers[1] = address(0x2222222222222222222222222222222222222222);
+        address[] memory extMembers = new address[](1);
+        extMembers[0] = TEST_ACCOUNT_2;
 
         SecurityCouncil securityCouncil = new SecurityCouncil(
-            deployer, extMembers, address(governor), address(timelock), address(vton)
+            TEST_ACCOUNT_1, extMembers, address(governor), address(timelock), address(vton)
         );
         console.log("SecurityCouncil deployed at:", address(securityCouncil));
 
