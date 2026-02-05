@@ -47,7 +47,7 @@ function extractTitle(description: string): string {
 const DEMO_PROPOSALS: Record<string, ProposalDetailData> = {
   "demo-1": {
     id: "demo-1",
-    title: "TIP-001: Increase staking rewards by 5%",
+    title: "TIP-006: Increase staking rewards by 5%",
     description: `## Summary
 This proposal aims to increase the staking rewards for vTON holders by 5% to incentivize long-term participation in the Tokamak Network governance.
 
@@ -77,7 +77,7 @@ Current staking rewards may not be competitive enough compared to other DeFi pro
   },
   "demo-2": {
     id: "demo-2",
-    title: "TIP-002: Add new liquidity pool for TON/ETH",
+    title: "TIP-007: Add new liquidity pool for TON/ETH",
     description: `## Summary
 Proposal to add a new liquidity pool for TON/ETH pair on the Tokamak DEX.
 
@@ -97,7 +97,7 @@ Proposal to add a new liquidity pool for TON/ETH pair on the Tokamak DEX.
   },
   "demo-3": {
     id: "demo-3",
-    title: "TIP-003: Update governance parameters",
+    title: "TIP-002: Update governance parameters",
     description: `## Summary
 Update various governance parameters to optimize the decision-making process.
 
@@ -119,7 +119,7 @@ Update various governance parameters to optimize the decision-making process.
   },
   "demo-4": {
     id: "demo-4",
-    title: "TIP-004: Treasury allocation for ecosystem grants",
+    title: "TIP-005: Treasury allocation for ecosystem grants",
     description: `## Summary
 Allocate 500,000 TON from the treasury for ecosystem development grants.
 
@@ -141,7 +141,7 @@ Allocate 500,000 TON from the treasury for ecosystem development grants.
   },
   "demo-5": {
     id: "demo-5",
-    title: "TIP-005: Reduce proposal creation cost to 50 TON",
+    title: "TIP-003: Reduce proposal creation cost to 50 TON",
     description: `## Summary
 Reduce the cost of creating proposals from 100 TON to 50 TON.
 
@@ -159,7 +159,7 @@ Lower barrier to entry for community members to participate in governance.`,
   },
   "demo-6": {
     id: "demo-6",
-    title: "TIP-006: Emergency security patch implementation",
+    title: "TIP-004: Emergency security patch implementation",
     description: `## Summary
 Emergency security patch for a vulnerability discovered in the staking contract.
 

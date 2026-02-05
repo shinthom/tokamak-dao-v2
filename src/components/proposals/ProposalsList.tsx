@@ -27,7 +27,7 @@ interface ProposalListItem {
 const DEMO_PROPOSALS: ProposalListItem[] = [
   {
     id: "demo-3",
-    title: "TIP-003: Update governance parameters",
+    title: "TIP-002: Update governance parameters",
     status: "executed",
     date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     forVotes: 2100000,
@@ -38,7 +38,7 @@ const DEMO_PROPOSALS: ProposalListItem[] = [
   },
   {
     id: "demo-5",
-    title: "TIP-005: Reduce proposal creation cost to 50 TON",
+    title: "TIP-003: Reduce proposal creation cost to 50 TON",
     status: "defeated",
     date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
     forVotes: 450000,
@@ -49,7 +49,7 @@ const DEMO_PROPOSALS: ProposalListItem[] = [
   },
   {
     id: "demo-6",
-    title: "TIP-006: Emergency security patch implementation",
+    title: "TIP-004: Emergency security patch implementation",
     status: "canceled",
     date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
     forVotes: 50000,
@@ -60,7 +60,7 @@ const DEMO_PROPOSALS: ProposalListItem[] = [
   },
   {
     id: "demo-4",
-    title: "TIP-004: Treasury allocation for ecosystem grants",
+    title: "TIP-005: Treasury allocation for ecosystem grants",
     status: "queued",
     date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
     forVotes: 1800000,
@@ -71,7 +71,7 @@ const DEMO_PROPOSALS: ProposalListItem[] = [
   },
   {
     id: "demo-1",
-    title: "TIP-001: Increase staking rewards by 5%",
+    title: "TIP-006: Increase staking rewards by 5%",
     status: "active",
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
     forVotes: 1250000,
@@ -82,7 +82,7 @@ const DEMO_PROPOSALS: ProposalListItem[] = [
   },
   {
     id: "demo-2",
-    title: "TIP-002: Add new liquidity pool for TON/ETH",
+    title: "TIP-007: Add new liquidity pool for TON/ETH",
     status: "pending",
     date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
     forVotes: 890000,
