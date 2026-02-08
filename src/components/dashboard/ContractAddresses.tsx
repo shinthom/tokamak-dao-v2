@@ -30,9 +30,11 @@ export function ContractAddresses() {
       ? "Mainnet"
       : chainId === 11155111
         ? "Sepolia"
-        : chainId === 31337
+        : chainId === 1337
           ? "Localhost"
-          : `Chain ${chainId}`;
+          : chainId === 13371
+            ? "Sandbox"
+            : `Chain ${chainId}`;
 
   return (
     <Card>

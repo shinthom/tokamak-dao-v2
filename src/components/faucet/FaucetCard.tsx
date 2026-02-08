@@ -15,10 +15,12 @@ import {
   useMintTON,
 } from "@/hooks/contracts";
 
+
 const NETWORK_NAMES: Record<number, string> = {
   1: "Ethereum Mainnet",
   11155111: "Ethereum Sepolia",
   1337: "Localhost (Anvil)",
+  13371: "Sandbox (Anvil)",
 };
 
 const BLOCK_EXPLORER_TX_URL: Record<number, string> = {
@@ -45,7 +47,6 @@ function formatBalance(value: bigint): string {
 export function FaucetCard() {
   const { address, isConnected, isReady } = useWalletConnection();
   const chainId = useChainId();
-
   const networkName = NETWORK_NAMES[chainId] ?? `Chain ${chainId}`;
   const blockExplorerTxUrl = BLOCK_EXPLORER_TX_URL[chainId];
 

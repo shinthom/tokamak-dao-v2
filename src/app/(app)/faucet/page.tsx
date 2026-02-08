@@ -11,7 +11,7 @@ import { FaucetCard } from "@/components/faucet";
  */
 export default function FaucetPage() {
   const chainId = useChainId();
-  const isLocalhost = chainId === 1337;
+  const isLocalhost = chainId === 1337 || chainId === 13371;
 
   return (
     <div className="space-y-6">
