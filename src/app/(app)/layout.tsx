@@ -16,6 +16,7 @@ import {
 import { MobileNav } from "@/components/ui/mobile-nav";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/providers/ThemeProvider";
+import { SandboxButton, SandboxBanner } from "@/components/sandbox";
 
 // Navigation icons
 const DashboardIcon = () => (
@@ -111,10 +112,13 @@ export default function AppLayout({
         </NavigationItems>
 
         <NavigationActions>
+          <SandboxButton />
           <ThemeToggle />
           <ConnectWalletButton />
         </NavigationActions>
       </Navigation>
+
+      <SandboxBanner />
 
       {/* Mobile Navigation Drawer */}
       <MobileNav

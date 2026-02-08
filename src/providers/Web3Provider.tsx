@@ -32,6 +32,11 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // 앱 시작 시 이전 세션 연결 복원
   React.useEffect(() => {
+    // Disable MetaMask legacy auto-reload on chain change
+    const ethereum = (window as unknown as { ethereum?: { autoRefreshOnNetworkChange?: boolean } }).ethereum;
+    if (ethereum) {
+      ethereum.autoRefreshOnNetworkChange = false;
+    }
     reconnect(config);
   }, []);
 
