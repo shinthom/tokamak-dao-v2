@@ -63,28 +63,32 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
         }
 
         // Machine is alive — restore session
-        const fullRpcUrl = `${window.location.origin}${parsed.rpcUrl}`;
-        setSandboxRpcUrl(fullRpcUrl);
+        // Set cookie so the stable RPC proxy can route to the correct machine
+        document.cookie = `sandbox-machine-id=${parsed.machineId}; path=/; SameSite=Strict`;
+        const stableRpcUrl = `${window.location.origin}/api/sandbox/rpc`;
+        setSandboxRpcUrl(stableRpcUrl);
         setSandboxAddresses(parsed.addresses);
         setSession(parsed);
         setStatus("ready");
 
-        // Switch wallet to sandbox chain (critical: without this, MetaMask stays
-        // on the previous chain after page reload, causing write tx to fail with
-        // "Requested resource not available" when Wagmi tries switchChain internally)
+        // Switch wallet to sandbox chain only if not already on it.
+        // wallet_addEthereumChain always shows a popup, so skip if unnecessary.
         try {
-          const ethereum = (window as unknown as { ethereum?: { request: (args: { method: string; params: unknown[] }) => Promise<void>; autoRefreshOnNetworkChange?: boolean } }).ethereum;
+          const ethereum = (window as unknown as { ethereum?: { request: (args: { method: string; params: unknown[] }) => Promise<unknown>; autoRefreshOnNetworkChange?: boolean } }).ethereum;
           if (ethereum) {
             ethereum.autoRefreshOnNetworkChange = false;
-            await ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [{
-                chainId: `0x${SANDBOX_CHAIN_ID.toString(16)}`,
-                chainName: "Tokamak Sandbox",
-                rpcUrls: [fullRpcUrl],
-                nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-              }],
-            });
+            const currentChainId = await ethereum.request({ method: "eth_chainId", params: [] }) as string;
+            if (parseInt(currentChainId, 16) !== SANDBOX_CHAIN_ID) {
+              await ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [{
+                  chainId: `0x${SANDBOX_CHAIN_ID.toString(16)}`,
+                  chainName: "Tokamak Sandbox",
+                  rpcUrls: [stableRpcUrl],
+                  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+                }],
+              });
+            }
           }
         } catch {
           // User might reject - that's ok, reads still work via custom transport
@@ -118,6 +122,7 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
         const res = await fetch(`/api/sandbox/session/${session.machineId}`);
         const data = await res.json();
         if (!data.alive) {
+          document.cookie = "sandbox-machine-id=; path=/; max-age=0";
           setSandboxRpcUrl(null);
           setSandboxAddresses(null);
           setSession(null);
@@ -176,15 +181,17 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
           setProgress({ step: data.step, message: data.message, progress: data.progress });
 
           if (data.step === "done") {
-            const fullRpcUrl = `${window.location.origin}${data.rpcUrl}`;
+            // Set cookie so the stable RPC proxy can route to the correct machine
+            document.cookie = `sandbox-machine-id=${data.machineId}; path=/; SameSite=Strict`;
+            const stableRpcUrl = `${window.location.origin}/api/sandbox/rpc`;
             const newSession: SandboxSession = {
               machineId: data.machineId,
-              rpcUrl: data.rpcUrl,
+              rpcUrl: "/api/sandbox/rpc",
               addresses: data.addresses,
             };
 
             // Set overrides
-            setSandboxRpcUrl(fullRpcUrl);
+            setSandboxRpcUrl(stableRpcUrl);
             setSandboxAddresses(data.addresses);
 
             setSession(newSession);
@@ -196,13 +203,13 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
               if (ethereum) {
                 // Disable legacy MetaMask auto-reload on chain change
                 ethereum.autoRefreshOnNetworkChange = false;
-                // Register chain in wallet with correct sandbox RPC URL
+                // Register chain in wallet with stable RPC URL (never changes between sessions)
                 await ethereum.request({
                   method: "wallet_addEthereumChain",
                   params: [{
                     chainId: `0x${SANDBOX_CHAIN_ID.toString(16)}`,
                     chainName: "Tokamak Sandbox",
-                    rpcUrls: [fullRpcUrl],
+                    rpcUrls: [stableRpcUrl],
                     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
                   }],
                 });
@@ -228,7 +235,8 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
       // ignore cleanup errors
     }
 
-    // Clear overrides
+    // Clear cookie and overrides
+    document.cookie = "sandbox-machine-id=; path=/; max-age=0";
     setSandboxRpcUrl(null);
     setSandboxAddresses(null);
 

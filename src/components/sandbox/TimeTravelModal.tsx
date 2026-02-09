@@ -5,6 +5,7 @@ import { Modal, ModalBody, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useSandbox } from "@/hooks/useSandbox";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface TimeTravelModalProps {
   open: boolean;
@@ -27,6 +28,7 @@ const UNIT_MULTIPLIERS: Record<string, number> = {
 
 export function TimeTravelModal({ open, onClose }: TimeTravelModalProps) {
   const { timeTravel } = useSandbox();
+  const queryClient = useQueryClient();
   const [customValue, setCustomValue] = useState("");
   const [unit, setUnit] = useState("hours");
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +37,8 @@ export function TimeTravelModal({ open, onClose }: TimeTravelModalProps) {
     setIsLoading(true);
     try {
       await timeTravel(seconds);
+      // Refetch all queries so proposal states, timeline, etc. reflect the new block
+      await queryClient.invalidateQueries();
       onClose();
     } finally {
       setIsLoading(false);

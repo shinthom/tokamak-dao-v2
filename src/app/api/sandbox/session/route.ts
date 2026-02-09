@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         send({
           step: "done",
           machineId,
-          rpcUrl: `/api/sandbox/session/${machineId}/rpc`,
+          rpcUrl: "/api/sandbox/rpc",
           addresses,
         });
       } catch (error) {

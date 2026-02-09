@@ -5,10 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSandbox } from "@/hooks/useSandbox";
 import { TimeTravelModal } from "./TimeTravelModal";
+import { useBlock } from "wagmi";
+
+function formatTimestamp(timestamp: bigint): string {
+  return new Date(Number(timestamp) * 1000).toLocaleString();
+}
 
 export function SandboxBanner() {
-  const { isActive, stopSandbox } = useSandbox();
+  const { isActive } = useSandbox();
   const [timeTravelOpen, setTimeTravelOpen] = useState(false);
+
+  const { data: block } = useBlock({
+    watch: true,
+    query: { enabled: isActive, refetchInterval: 4000 },
+  });
 
   if (!isActive) return null;
 
@@ -21,9 +31,15 @@ export function SandboxBanner() {
               <Badge variant="success" size="sm">
                 Sandbox
               </Badge>
-              <span className="text-sm text-[var(--text-secondary)] truncate">
-                Temporary cloud environment
-              </span>
+              {block ? (
+                <span className="text-xs text-[var(--text-tertiary)] font-mono truncate">
+                  Block #{block.number?.toString()} &middot; {formatTimestamp(block.timestamp)}
+                </span>
+              ) : (
+                <span className="text-sm text-[var(--text-secondary)] truncate">
+                  Temporary cloud environment
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button
@@ -32,9 +48,6 @@ export function SandboxBanner() {
                 onClick={() => setTimeTravelOpen(true)}
               >
                 Time Travel
-              </Button>
-              <Button variant="ghost" size="xs" onClick={stopSandbox}>
-                Stop
               </Button>
             </div>
           </div>

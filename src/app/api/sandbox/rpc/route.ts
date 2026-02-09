@@ -1,14 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { proxyRpc } from "../../../lib/fly";
+import { proxyRpc } from "../lib/fly";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ machineId: string }> }
-) {
-  const { machineId: pathMachineId } = await params;
-  // Prefer cookie machine ID (always current) over URL param (may be stale
-  // due to MetaMask caching old RPC URLs for already-registered chains)
-  const machineId = request.cookies.get("sandbox-machine-id")?.value ?? pathMachineId;
+export async function POST(request: NextRequest) {
+  const machineId = request.cookies.get("sandbox-machine-id")?.value;
+
+  if (!machineId) {
+    return NextResponse.json(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32600, message: "No active sandbox session" },
+      },
+      { status: 400 }
+    );
+  }
 
   let body: unknown;
   try {
